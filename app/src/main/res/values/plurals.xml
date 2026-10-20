@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <plurals name="feed_drops">
+        <item quantity="one">%1$d drop</item>
+        <item quantity="other">%1$d drops</item>
+    </plurals>
+    <plurals name="mlat_peers">
+        <item quantity="one">synced with %1$d nearby feeder</item>
+        <item quantity="other">synced with %1$d nearby feeders</item>
+    </plurals>
+    <plurals name="milestone_days">
+        <item quantity="one">%d day feeding</item>
+        <item quantity="other">%d days feeding</item>
+    </plurals>
+</resources>

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App icon "C": faceted stealth plane in ADS-B Exchange green, broadcasting from the nose.
+     Adaptive-icon foreground: 108dp canvas, artwork kept inside the central 66dp safe zone.
+     The same geometry is used by ic_launcher_monochrome, ic_stat_feeder and mipmap-anydpi. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FF1E9E60" android:pathData="M54,42L33,68L37.5,75L47,69Z" />
+    <path android:fillColor="#FF136B41" android:pathData="M54,42L75,68L70.5,75L61,69Z" />
+    <path android:fillColor="#FF29D682" android:pathData="M54,42L48.5,60L54,73Z" />
+    <path android:fillColor="#FF1A8651" android:pathData="M54,42L59.5,60L54,73Z" />
+    <path
+        android:pathData="M48.34,37.34A8,8 0,0 1,59.66 37.34M44.1,33.1A14,14 0,0 1,63.9 33.1M39.86,28.86A20,20 0,0 1,68.14 28.86"
+        android:strokeColor="#FF29D682"
+        android:strokeLineCap="round"
+        android:strokeWidth="3.4" />
+</vector>

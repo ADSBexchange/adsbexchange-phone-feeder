@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ADS-B Exchange website palette; keep in step with ui/theme/Theme.kt. -->
+    <color name="ic_launcher_background">#FF000000</color>
+    <color name="window_background">#FF000000</color>
+</resources>

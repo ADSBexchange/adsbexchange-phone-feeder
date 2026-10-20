@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Legacy icon for Android 7.x (no adaptive icons): icon "C" on a black disc. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M4,54a50,50 0,1 0,100 0a50,50 0,1 0,-100 0z" />
+    <path android:fillColor="#FF1E9E60" android:pathData="M54,42L33,68L37.5,75L47,69Z" />
+    <path android:fillColor="#FF136B41" android:pathData="M54,42L75,68L70.5,75L61,69Z" />
+    <path android:fillColor="#FF29D682" android:pathData="M54,42L48.5,60L54,73Z" />
+    <path android:fillColor="#FF1A8651" android:pathData="M54,42L59.5,60L54,73Z" />
+    <path
+        android:pathData="M48.34,37.34A8,8 0,0 1,59.66 37.34M44.1,33.1A14,14 0,0 1,63.9 33.1M39.86,28.86A20,20 0,0 1,68.14 28.86"
+        android:strokeColor="#FF29D682"
+        android:strokeLineCap="round"
+        android:strokeWidth="3.4" />
+</vector>

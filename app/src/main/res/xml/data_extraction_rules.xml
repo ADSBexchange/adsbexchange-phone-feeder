@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Nothing of this app's leaves the phone through Android's backup or device-to-device transfer.
+  allowBackup="false" stops cloud backup, but on Android 12+ it doesn't stop the transfer to a new
+  phone at setup. That would copy settings.json (the receiver position, which is usually someone's
+  home, and the feeder ID) and the history. Two phones would then feed under the same feeder ID.
+  A new phone sets up as a new feeder instead.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+</data-extraction-rules>

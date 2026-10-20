@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notification icon: white silhouette of the app icon (status bar icons must be one colour).
+     Same geometry as ic_launcher_foreground, cropped to the artwork. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="56"
+    android:viewportHeight="56">
+    <group
+        android:translateX="-26"
+        android:translateY="-23">
+        <path
+            android:fillColor="#FFFFFFFF"
+            android:pathData="M54,42L33,68L37.5,75L47,69L54,73L61,69L70.5,75L75,68Z" />
+        <path
+            android:pathData="M48.34,37.34A8,8 0,0 1,59.66 37.34M44.1,33.1A14,14 0,0 1,63.9 33.1M39.86,28.86A20,20 0,0 1,68.14 28.86"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeLineCap="round"
+            android:strokeWidth="3.4" />
+    </group>
+</vector>
