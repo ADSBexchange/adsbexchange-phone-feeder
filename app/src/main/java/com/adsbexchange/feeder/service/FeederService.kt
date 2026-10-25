@@ -238,6 +238,16 @@ class FeederService : Service() {
         }
         if (hold != null) holdEnded(hold)
         publish { FeederStatus(State.STARTING) }
+        if (readsbStarted) {
+            // A start that arrived while the last run's process is still ending (Start tapped right
+            // after Stop, the SDR re-plugged): readsb can't start twice in one process. Let this one
+            // end and start in the process Android restarts the service in, as for plannedRestart.
+            log("the last run is still shutting down; starting again in a new process")
+            restartBudget.expectRestart()
+            NativeFeeder.requestStop()
+            handler.postDelayed({ Process.killProcess(Process.myPid()) }, STOP_TIMEOUT_MS)
+            return START_STICKY
+        }
         if (smokeFile != null) {
             startSmokeTest(intent, File(filesDir, smokeFile), settings)
         } else {
@@ -343,6 +353,7 @@ class FeederService : Service() {
         NativeFeeder.setJsonPaused(!uiVisible)
         NativeFeeder.setHiddenJsonInterval(if (statsUrl != null) STATS_JSON_INTERVAL_S else HIDDEN_JSON_INTERVAL_S)
         NativeFeeder.setLogcatMirror(BuildConfig.DEBUG)
+        readsbStarted = true // even if start fails below: the bridge allows one attempt per process
         val rc = NativeFeeder.start(usbFd, args.toTypedArray(), paths.logFile.absolutePath, paths.exitFile.absolutePath)
         if (rc != 0) {
             log("native start failed ($rc)")
@@ -916,6 +927,13 @@ class FeederService : Service() {
     private fun freeLoopbackPort(): Int = ServerSocket(0, 1, InetAddress.getLoopbackAddress()).use { it.localPort }
 
     companion object {
+        /**
+         * Whether readsb has been started in this process. It outlives a service instance: after
+         * Stop, the process lives on for a few seconds while readsb shuts down, and a new start can
+         * arrive in it.
+         */
+        @Volatile private var readsbStarted = false
+
         const val ACTION_STOP = "com.adsbexchange.feeder.action.STOP"
         // Debug-build smoke test: file name relative to filesDir, the receiver position, and an
         // optional local feed sink ("127.0.0.1,port") so the feed path can be tested offline.

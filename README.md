@@ -461,6 +461,8 @@ identification / position / velocity frames at 2.4 MSps). It checks:
 - with the app in the background, readsb keeps running but stops rewriting `aircraft.json`, and it
   resumes when the app comes back;
 - Stop makes readsb exit normally with no service restart, and the stopped state shows;
+- Start right after Stop, while readsb is still shutting down, starts again in a new process
+  instead of failing (readsb can start only once per process);
 - battery protection: with the emulator's battery at 9% and unplugged, feeding pauses, readsb
   stops, Android restarts the service and it waits in the foreground, and the status card says
   "Paused: battery low". Plugged in again, it resumes (on the emulator that ends at "no SDR");

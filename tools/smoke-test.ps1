@@ -289,9 +289,13 @@ Check ($listed -eq $expected.aircraft.Count) "Aircraft tab lists $listed of $($e
 Screenshot 'aircraft.png'
 # The radar draws on a canvas, which uiautomator can't see; its header counts what's on it.
 Check (TapText 'Radar') 'opened the Radar tab'
-Start-Sleep -Seconds 2
-$onRadar = [regex]::Match((UiXml), 'text="\d+ aircraft · (\d+) on the radar').Groups[1].Value
 $withPos = @($expected.aircraft).Count
+# The radar redraws every second, which can leave uiautomator's dump empty: give it a few tries.
+$onRadar = ''
+for ($i = 0; $i -lt 5 -and $onRadar -ne "$withPos"; $i++) {
+    Start-Sleep -Seconds 2
+    $onRadar = [regex]::Match((UiXml), 'text="\d+ aircraft .{1,6} (\d+) on the radar').Groups[1].Value
+}
 Check ($onRadar -eq "$withPos") "Radar tab places $onRadar of the $withPos aircraft with a position"
 Screenshot 'radar.png'
 TapText 'Status' | Out-Null
@@ -547,12 +551,20 @@ if (-not $SkipStopTest) {
     Check ($log -match 'power test: phase 2 of 3, no_wake_lock' -and $log -match 'power test: wake lock not held' -and
            -not (WakeLockListed)) 'power test phase 2 feeds without the wake lock'
     Check (TapText 'Stop') 'tapped Stop'
+    # Start again at once, while readsb is still shutting down. Its process can't start readsb a
+    # second time, so the service lets that process end and starts in the one Android restarts it
+    # in. The restart has no capture file, so on the emulator it ends at "no SDR" (as after the
+    # battery pause); before the fix it ended at "couldn't start".
+    $stillRunning = -not (ReadsbExited)
+    StartSmokeRun
     Start-Sleep -Seconds 3
     $pt = (Shell "run-as $pkg cat files/power_test.json") | ConvertFrom-Json
     Check ($pt.stopped -match 'user_stopped') "Stop ends the power test, keeping its results ($($pt.stopped))"
-    # readsb can take several seconds to shut down, and its process can't start it again: wait for
-    # it to end before the next section starts a run.
-    for ($i = 0; $i -lt 15 -and -not (ReadsbExited); $i++) { Start-Sleep -Seconds 1 }
+    $t0 = Get-Date
+    do { Start-Sleep -Seconds 1; $st = FeederStatus } while ($st.reason -notin 'NO_SDR', 'START_FAILED' -and ((Get-Date) - $t0).TotalSeconds -lt 30)
+    $waited = (Shell "run-as $pkg cat files/readsb/readsb.log") -match 'starting again in a new process'
+    Check ($stillRunning -and $waited -and $st.reason -eq 'NO_SDR') `
+        "Start right after Stop starts again in a new process ($($st.state) $($st.reason), readsb was still running: $stillRunning)"
     Shell "run-as $pkg rm -f files/power_test.json" | Out-Null
     if (-not $sink2.HasExited) { Stop-Process -Id $sink2.Id -ErrorAction SilentlyContinue }
 }
