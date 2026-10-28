@@ -212,7 +212,7 @@
     <string name="feed_adsbx_note">Turn off to only see aircraft in this app.</string>
     <string name="auto_start">Start automatically</string>
     <string name="auto_start_note">When the SDR is plugged in and after the phone restarts.</string>
-    <string name="stats_uploads">Send stats to ADS-B Exchange</string>
+    <string name="stats_uploads">Send stats to ADS-B Exchange (recommended)</string>
     <string name="stats_uploads_note">What ADS-B Exchange\'s own feeders send alongside the feed. Without it this feeder gets no statistics, and doesn\'t appear on the leaderboard or in the Feeder Hub. Sends the aircraft list every 5 seconds: about 1–10 GB a month, depending on how busy the sky is.</string>
     <string name="action_stats_page">Your ADS-B Exchange stats page</string>
     <string name="feed_mobile_data">Feed over mobile data</string>

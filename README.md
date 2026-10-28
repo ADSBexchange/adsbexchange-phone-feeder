@@ -74,7 +74,7 @@ S10+ and a Pixel 10 Pro. Older phones (Android 7–10) are still to test. Brandi
   package's `json-status` script), and it uses the same request. Without it ADS-B Exchange lists
   the feeder as "beast-only": the feed arrives, but there are no statistics (aircraft seen,
   positions, range, uptime), and the feeder isn't on the leaderboard or in the Feeder Hub. On by
-  default, with a switch and a link to the feeder's stats page in Settings. About 1–10 GB a month
+  default and recommended, with a switch and a link to the feeder's stats page in Settings. About 1–10 GB a month
   depending on traffic, so it pauses with the feed on mobile data. Ported from the desktop feeder
   (`service/StatsUploader.kt`).
 - **No surprise mobile data:** a phone at home with a SIM falls back to mobile data whenever

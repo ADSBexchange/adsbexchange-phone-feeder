@@ -44,6 +44,7 @@ import com.adsbexchange.feeder.BuildConfig
 import com.adsbexchange.feeder.R
 import com.adsbexchange.feeder.data.FeederSettings
 import com.adsbexchange.feeder.data.StationLocation
+import com.adsbexchange.feeder.data.TypedNumber
 import com.adsbexchange.feeder.service.StatsUploader
 import java.text.DateFormat
 import java.util.Date
@@ -200,8 +201,8 @@ private fun describe(loc: StationLocation?): String {
 private fun ManualLocationDialog(current: StationLocation?, onDismiss: () -> Unit, onSave: (Double, Double) -> Unit) {
     var lat by rememberSaveable { mutableStateOf(current?.lat?.let { "%.5f".format(Locale.US, it) } ?: "") }
     var lon by rememberSaveable { mutableStateOf(current?.lon?.let { "%.5f".format(Locale.US, it) } ?: "") }
-    val latD = lat.trim().toDoubleOrNull()
-    val lonD = lon.trim().toDoubleOrNull()
+    val latD = TypedNumber.coordinate(lat)
+    val lonD = TypedNumber.coordinate(lon)
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.manual_location_title)) },

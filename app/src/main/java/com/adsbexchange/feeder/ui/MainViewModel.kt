@@ -31,6 +31,7 @@ import com.adsbexchange.feeder.data.RtlSdrDevices
 import com.adsbexchange.feeder.data.StationLocation
 import com.adsbexchange.feeder.data.StationLocator
 import com.adsbexchange.feeder.data.StatsStatus
+import com.adsbexchange.feeder.data.TypedNumber
 import com.adsbexchange.feeder.data.UiVisibility
 import com.adsbexchange.feeder.service.FeederService
 import com.adsbexchange.feeder.service.Notifications
@@ -262,7 +263,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             saveSettings { it.copy(antennaAltitudeM = null) }
             return showMessage(context.getString(R.string.msg_saved))
         }
-        val v = t.toDoubleOrNull()
+        val v = TypedNumber.metres(t)
         if (v == null || v !in -420.0..5100.0) return showMessage(context.getString(R.string.msg_altitude_invalid))
         saveSettings { it.copy(antennaAltitudeM = v) }
         showMessage(context.getString(R.string.msg_saved))
@@ -338,9 +339,11 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setGain(gain: String) {
-        val g = gain.trim().lowercase()
-        val valid = g == "auto" || g.toDoubleOrNull()?.let { it in 0.0..60.0 } == true
-        if (!valid) return showMessage(context.getString(R.string.msg_gain_invalid))
+        // Saved as readsb reads it: "auto" or a plain number ("49,6" typed is saved as "49.6").
+        val g = gain.trim().lowercase().let { t ->
+            if (t == "auto") t else TypedNumber.decibels(t)?.takeIf { it in 0.0..60.0 }
+                ?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() }
+        } ?: return showMessage(context.getString(R.string.msg_gain_invalid))
         saveSettings { it.copy(gain = g) }
         showMessage(context.getString(if (_state.value.feeding) R.string.msg_restart_to_apply else R.string.msg_saved))
     }
