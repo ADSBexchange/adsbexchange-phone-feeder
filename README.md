@@ -634,10 +634,10 @@ first Play upload.
 - **Play policy:** the app doesn't hold `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` (Play restricts it
   to certain kinds of app); "Allow background running" opens the app's App info page, where the
   user chooses Battery > Unrestricted (`requestBatteryExemption()`). The partial wake lock may
-  trip Android vitals' excessive wake lock metric; the power test checks whether the lock can go. The location foreground-service type needs a justification and video; the
-  privacy policy and data-safety form are still to write.
-- **Release:** R8 shrinking (unshrunk today). The copyright holder on the licenses screen
-  (`ui/Licenses.kt`) is a placeholder.
+  trip Android vitals' excessive wake lock metric; the power test checks whether the lock can
+  go. The connected-device foreground service needs a declaration and a demo video; the
+  privacy policy is with Legal.
+- **Release:** R8 shrinking (unshrunk today).
 
 ## Licensing
 
@@ -646,7 +646,7 @@ and the MLAT client is a Kotlin port of mlat-client (GPL-3.0-or-later, © 2015 O
 a distributed build is GPL-3 as a whole. Everyone who gets the app must be able to get its
 source: Settings > About links to it (`BuildConfig.SOURCE_URL`) and shows the GPL's notices.
 The source is at https://github.com/ADSBexchange/adsbexchange-phone-feeder. The copyright
-holder is still to be confirmed.
+holder is JETNET, L.L.C.
 
 Settings > About > Open-source licenses lists every component in the APK with its copyright and
 license. The license texts ship in `app/src/main/assets/licenses/`. That includes readsb's notice,

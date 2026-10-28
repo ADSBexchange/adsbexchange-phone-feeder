@@ -50,10 +50,10 @@ internal data class OssComponent(
 
 /** Everything in the APK: the C libraries from cpp/cmake/deps.cmake and the runtime Maven packages. */
 internal val OSS_COMPONENTS = listOf(
-    // The app itself, first. Placeholder copyright holder: for Legal to confirm before release.
+    // The app itself, first. The copyright holder is JETNET, L.L.C. (confirmed by Legal, October 2026).
     OssComponent(
         "ADS-B Exchange Phone Feeder", R.string.oss_app, "GPL-3.0-or-later",
-        "Copyright © 2026 ADS-B Exchange", BuildConfig.SOURCE_URL, listOf("GPL-3.0.txt"),
+        "Copyright © 2026 JETNET, L.L.C.", BuildConfig.SOURCE_URL, listOf("GPL-3.0.txt"),
     ),
     OssComponent(
         "readsb", R.string.oss_readsb, "GPL-3.0-or-later",
