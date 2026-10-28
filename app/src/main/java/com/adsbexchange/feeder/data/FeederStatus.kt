@@ -13,8 +13,6 @@ import java.io.File
 data class FeederStatus(
     val state: State,
     val reason: Reason = Reason.NONE,
-    /** Live receiver position in mobile mode, when the service is getting GPS updates. */
-    val liveLocation: StationLocation? = null,
     /**
      * Whether this run sends data to ADS-B Exchange. Can differ from the saved setting: the setting
      * only applies at the next start, and smoke-test runs feed a local sink instead.
@@ -59,7 +57,7 @@ data class FeederStatus(
     fun write(file: File) {
         val o = JSONObject()
             .put("state", state.name).put("reason", reason.name).put("updated", updatedMs)
-            .put("liveLocation", liveLocation?.toJson() ?: JSONObject.NULL)
+
             .put("feeding", feeding)
             .put("feedTarget", feedTarget ?: JSONObject.NULL)
             .put("feedState", feedState.name)
@@ -80,7 +78,6 @@ data class FeederStatus(
             FeederStatus(
                 state = State.valueOf(o.getString("state")),
                 reason = runCatching { Reason.valueOf(o.optString("reason")) }.getOrDefault(Reason.NONE),
-                liveLocation = StationLocation.fromJson(o.optJSONObject("liveLocation")),
                 feeding = o.optBoolean("feeding", false),
                 feedTarget = o.optString("feedTarget").takeIf { it.isNotBlank() && !o.isNull("feedTarget") },
                 feedState = runCatching { FeedState.valueOf(o.optString("feedState")) }.getOrDefault(FeedState.UNKNOWN),

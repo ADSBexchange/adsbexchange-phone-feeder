@@ -158,7 +158,7 @@ class HistoryTest {
     }
 
     @Test
-    fun noRangePlotInMobileModeButTheRecordStillCounts() {
+    fun noRangePlotForAMovingReceiverButTheRecordStillCounts() {
         val r = fresh()
         r.onAircraft(listOf(1), listOf(pos(80.0, 45.0)), recordRange = false, contributing = true, nowMs = day0)
         val h = r.snapshot(day0)

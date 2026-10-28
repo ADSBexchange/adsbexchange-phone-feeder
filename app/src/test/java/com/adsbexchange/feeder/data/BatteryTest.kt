@@ -73,7 +73,6 @@ class BatteryTest {
         assertFalse("no network: nothing is sent", NetworkGuard.wouldUseMobileData(null, true, s))
         assertFalse("receive only", NetworkGuard.wouldUseMobileData(true, false, s))
         assertFalse("allowed in Settings", NetworkGuard.wouldUseMobileData(true, true, s.copy(feedOverMobileData = true)))
-        assertFalse("mobile mode feeds on the move", NetworkGuard.wouldUseMobileData(true, true, s.copy(mobileMode = true)))
     }
 
     @Test

@@ -78,8 +78,6 @@ data class UiState(
     val health: PhoneHealth? = null,
     val locationPermission: Boolean = false,
     val locating: LocatingProgress? = null,
-    /** Mobile mode's latest position from the feeder process. */
-    val liveLocation: StationLocation? = null,
     /** Whether the current run sends to ADS-B Exchange (reported by the service, not the setting). */
     val feedingAdsbx: Boolean = false,
     val feed: FeedStats = FeedStats(),
@@ -269,12 +267,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         showMessage(context.getString(R.string.msg_saved))
     }
 
-    fun setMobileMode(on: Boolean) {
-        saveSettings { it.copy(mobileMode = on) }
-        if (_state.value.feeding) showMessage(context.getString(R.string.msg_restart_to_apply))
-        resumeIfMobileDataAllowed()
-    }
-
     fun setStatsUploads(on: Boolean) {
         saveSettings { it.copy(statsUploads = on) }
         if (_state.value.feeding) showMessage(context.getString(R.string.msg_restart_to_apply))
@@ -292,7 +284,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     private fun resumeIfMobileDataAllowed() {
         val s = _state.value
         if ((s.run as? RunState.Paused)?.reason != FeederStatus.Reason.MOBILE_DATA) return
-        if (s.settings.feedOverMobileData || s.settings.mobileMode || !s.settings.feedAdsbx) restart()
+        if (s.settings.feedOverMobileData || !s.settings.feedAdsbx) restart()
     }
 
     fun setAutoStart(on: Boolean) = saveSettings { it.copy(autoStart = on) }
@@ -426,7 +418,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             appendLine("${context.getString(R.string.app_name)} ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE}, ${BuildConfig.GIT_COMMIT})")
             appendLine("Device: ${Build.MANUFACTURER} ${Build.MODEL}, Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT}), ${Build.SUPPORTED_ABIS.firstOrNull()}")
             appendLine("Feeder: ${s.settings.name} / ${s.settings.uuid}")
-            appendLine("Settings: feed=${s.settings.feedAdsbx} autoStart=${s.settings.autoStart} mobile=${s.settings.mobileMode} gain=${s.settings.gain} location=${s.settings.location?.source ?: "none"}")
+            appendLine("Settings: feed=${s.settings.feedAdsbx} autoStart=${s.settings.autoStart} gain=${s.settings.gain} location=${s.settings.location?.source ?: "none"}")
             appendLine("SDR: ${s.sdr}")
             appendLine("Run: ${s.run}")
             if (r != null) appendLine("Receiver: live=${r.live} msg/s=${r.messagesPerSecond} aircraft=${r.aircraft.size} dropped=${r.samplesDropped} signal=${r.signalDbfs} noise=${r.noiseDbfs}")
@@ -486,7 +478,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (!s.onboardingDone || !locator.hasPermission() || locateJob?.isActive == true) return
         val saved = s.location
         if (saved == null) return acquireLocation(announce = false)
-        if (s.mobileMode || saved.source == StationLocation.Source.MANUAL) return
+        if (saved.source == StationLocation.Source.MANUAL) return
         if (System.currentTimeMillis() - lastMoveCheckMs < MOVE_CHECK_INTERVAL_MS) return
         lastMoveCheckMs = System.currentTimeMillis()
         locateJob = viewModelScope.launch {
@@ -544,7 +536,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 receiver = receiver,
                 run = runState(status, receiver),
                 health = phoneHealth(),
-                liveLocation = status?.liveLocation,
                 status = status,
                 powerTest = PowerTest.read(paths),
             )
@@ -562,7 +553,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             it.copy(
                 settings = snapshot.settings, sdr = snapshot.sdr, run = snapshot.run, receiver = snapshot.receiver,
                 health = snapshot.health, locationPermission = locator.hasPermission(),
-                liveLocation = snapshot.liveLocation, feedingAdsbx = snapshot.status?.feeding == true,
+                feedingAdsbx = snapshot.status?.feeding == true,
                 feed = feed,
                 mlat = snapshot.status?.mlat?.takeIf { snapshot.run == RunState.Running }
                     ?: MlatStatus(readiness = snapshot.settings.mlatReadiness()),
@@ -582,7 +573,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         val receiver: ReceiverStatus,
         val run: RunState,
         val health: PhoneHealth,
-        val liveLocation: StationLocation?,
         val status: FeederStatus?,
         val powerTest: PowerTest?,
     )

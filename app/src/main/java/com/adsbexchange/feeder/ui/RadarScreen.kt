@@ -107,9 +107,9 @@ fun RadarScreen(state: UiState, vm: MainViewModel) {
     val rangeNm = chosen.takeIf { it > 0 } ?: auto
     var selected by rememberSaveable { mutableStateOf<String?>(null) }
     val selectedBlip = blips.firstOrNull { it.aircraft.hex == selected }
-    // In mobile mode the range plot isn't recorded, and the receiver moves anyway. Until most
+    // Until most
     // directions have heard something it's a star of spokes rather than an outline, so wait.
-    val coverage = state.history?.rangeNm?.takeIf { !state.settings.mobileMode && it.count { nm -> nm > 0 } * 2 >= it.size }
+    val coverage = state.history?.rangeNm?.takeIf { it.count { nm -> nm > 0 } * 2 >= it.size }
     // Airports (OurAirports, bundled): read once, off the main thread (half a megabyte), so they
     // appear a moment after the radar. As the desktop feeder (0.5.18).
     val context = LocalContext.current

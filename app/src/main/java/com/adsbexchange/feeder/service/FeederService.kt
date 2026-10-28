@@ -10,9 +10,6 @@ import android.content.pm.ServiceInfo
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbDeviceConnection
 import android.hardware.usb.UsbManager
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -62,7 +59,6 @@ import com.adsbexchange.feeder.data.UiVisibility
 import com.adsbexchange.feeder.data.readQuickStats
 import com.adsbexchange.feeder.data.RtlSdrDevices
 import com.adsbexchange.feeder.data.StationLocation
-import com.adsbexchange.feeder.data.StationLocator
 import com.adsbexchange.feeder.data.StatsStatus
 import java.io.File
 import java.io.IOException
@@ -90,7 +86,6 @@ class FeederService : Service() {
     private var status = FeederStatus(State.STOPPED)
     private var gpsd: GpsdServer? = null
     private var wakeLock: PowerManager.WakeLock? = null
-    private var locationListener: LocationListener? = null
     private var feedWatcher: FeedLogWatcher? = null
     private var uiVisible = false
     private var screenWasOn = false
@@ -113,7 +108,6 @@ class FeederService : Service() {
     private val chargeWatchdog = ChargeWatchdog()
     /** Set while feeding is paused to protect the battery; see [BatteryGuard]. */
     private var paused: Reason? = null
-    private var mobile = false
     private var latestStartId = 0
     /** When the feed went onto mobile data, while it's there; see [NetworkGuard]. */
     private var mobileDataSinceMs: Long? = null
@@ -218,17 +212,12 @@ class FeederService : Service() {
 
         val settings = FeederSettings.load(this)
         val smokeFile = intent?.getStringExtra(EXTRA_SMOKE_IFILE)?.takeIf { BuildConfig.DEBUG }
-        val wantsMobile = settings.mobileMode && smokeFile == null && StationLocator(this).hasPermission()
-        // A location-type foreground service can be refused (e.g. started from the background);
-        // then feed without mobile mode for this session rather than not at all.
-        val mobile = wantsMobile && enterForeground(withLocation = true)
-        if (!mobile && !enterForeground(withLocation = false)) {
+        if (!enterForeground()) {
             // A pause stays a pause: the app resumes it (and the hold) next time it's opened.
             publish { if (hold != null) FeederStatus(State.PAUSED, hold) else FeederStatus(State.STOPPED, Reason.START_FAILED) }
             stopSelf(startId)
             return START_NOT_STICKY
         }
-        this.mobile = mobile
         val feeding = if (smokeFile != null) intent.hasExtra(EXTRA_SMOKE_FEED) else settings.feedAdsbx
         val reason = holdReason(PhoneHealth.read(this), settings, feeding, hold)
         if (reason != null) {
@@ -251,12 +240,12 @@ class FeederService : Service() {
         if (smokeFile != null) {
             startSmokeTest(intent, File(filesDir, smokeFile), settings)
         } else {
-            startWithSdr(settings, mobile, startId)
+            startWithSdr(settings, startId)
         }
         return START_STICKY
     }
 
-    private fun startWithSdr(settings: FeederSettings, mobile: Boolean, startId: Int) {
+    private fun startWithSdr(settings: FeederSettings, startId: Int) {
         val dev = RtlSdrDevices.findAttached(this)
         if (dev == null) {
             log("no SDR attached")
@@ -287,7 +276,6 @@ class FeederService : Service() {
         log("using ${RtlSdrDevices.describe(dev)}")
         val feedTo = if (settings.feedAdsbx) FeederSettings.ADSBX_FEED else null
         startReadsb(conn.fileDescriptor, settings, settings.location, inputFile = null, feedTo = feedTo)
-        if (running && mobile) startLocationUpdates()
     }
 
     /**
@@ -406,7 +394,7 @@ class FeederService : Service() {
         // Settings only change through the app, so re-read them only while it's on screen.
         val settings = if (visible || cachedSettings == null) FeederSettings.load(this).also { cachedSettings = it }
             else cachedSettings!!
-        if (locationListener == null && !smokeMode) {
+        if (!smokeMode) {
             settings.location?.let { saved ->
                 if (saved != lastPushedLocation) {
                     gpsd?.update(saved)
@@ -438,7 +426,6 @@ class FeederService : Service() {
             smoke != null -> MlatReadiness.READY
             !status.feeding -> MlatReadiness.NOT_FEEDING
             !variant.mlat -> MlatReadiness.OFF
-            locationListener != null -> MlatReadiness.MOBILE_MODE
             else -> settings.mlatReadiness()
         }
         val wanted = if (readiness != MlatReadiness.READY) null else {
@@ -524,7 +511,7 @@ class FeederService : Service() {
             if (mtime != lastAircraftSampleMtime) {
                 lastAircraftSampleMtime = mtime
                 HistorySamples.aircraft(paths)?.let {
-                    h.onAircraft(it.addresses, it.positions, recordRange = locationListener == null, contributing, now)
+                    h.onAircraft(it.addresses, it.positions, recordRange = true, contributing, now)
                 }
             }
         }
@@ -604,37 +591,6 @@ class FeederService : Service() {
     private fun saveHistory() {
         val store = historyStore ?: return
         runCatching { history?.save(store, System.currentTimeMillis()) }.onFailure { log("history: not saved: $it") }
-    }
-
-    /** Mobile mode: keep readsb's receiver position current while the phone moves. */
-    @SuppressLint("MissingPermission") // only called when StationLocator.hasPermission()
-    private fun startLocationUpdates() {
-        val lm = getSystemService(LocationManager::class.java) ?: return
-        val listener = object : LocationListener {
-            override fun onLocationChanged(l: Location) {
-                val loc = StationLocation(
-                    l.latitude, l.longitude, l.altitude.takeIf { l.hasAltitude() },
-                    l.accuracy.takeIf { l.hasAccuracy() }, l.time,
-                    if (l.provider == LocationManager.GPS_PROVIDER) StationLocation.Source.GPS
-                    else StationLocation.Source.NETWORK,
-                )
-                gpsd?.update(loc)
-                publish { it.copy(liveLocation = loc) }
-            }
-            override fun onProviderEnabled(provider: String) {}
-            override fun onProviderDisabled(provider: String) {}
-            @Deprecated("Deprecated in Java")
-            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
-        }
-        try {
-            for (p in listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)) {
-                if (lm.isProviderEnabled(p)) lm.requestLocationUpdates(p, 30_000L, 50f, listener, Looper.getMainLooper())
-            }
-            locationListener = listener
-            log("mobile mode: following phone location")
-        } catch (e: SecurityException) {
-            log("mobile mode: no location access ($e); using saved position")
-        }
     }
 
     /**
@@ -722,7 +678,7 @@ class FeederService : Service() {
         holdEnded(current)
         publish { FeederStatus(State.STARTING) }
         updateNotification()
-        startWithSdr(settings, mobile, latestStartId)
+        startWithSdr(settings, latestStartId)
     }
 
     private fun stopWaiting() {
@@ -853,7 +809,6 @@ class FeederService : Service() {
         saveHistory()
         mlatClient?.stop()
         statsUploader?.stop()
-        locationListener?.let { getSystemService(LocationManager::class.java)?.removeUpdates(it) }
         if (device != null) runCatching { unregisterReceiver(detachReceiver) }
         releaseLocks()
         if (running) {
@@ -866,19 +821,15 @@ class FeederService : Service() {
         super.onDestroy()
     }
 
-    private fun enterForeground(withLocation: Boolean): Boolean = try {
-        var type = 0
-        if (Build.VERSION.SDK_INT >= 29) {
-            type = ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-            if (withLocation) type = type or ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
-        }
+    private fun enterForeground(): Boolean = try {
+        val type = if (Build.VERSION.SDK_INT >= 29) ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE else 0
         ServiceCompat.startForeground(this, Notifications.ID_FEEDER,
             Notifications.feeder(this, getString(R.string.notif_starting)), type)
         true
     } catch (e: Exception) {
         // e.g. ForegroundServiceStartNotAllowedException when restarted from the background on
-        // Android 12+, or SecurityException when a location-type service can't get location.
-        log("cannot enter foreground${if (withLocation) " with location" else ""}: $e")
+        // Android 12+.
+        log("cannot enter foreground: $e")
         false
     }
 

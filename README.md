@@ -22,7 +22,9 @@ S10+ and a Pixel 10 Pro. Older phones (Android 7–10) are still to test. Brandi
 - **Receiver location from the phone.** At setup the app averages GPS fixes for up to about 90 s,
   stopping once accuracy is good, and saves the position. It checks again (at most hourly) when
   the app is opened and updates the position if the phone has moved more than 5 km. It can also
-  be entered by hand. **Mobile mode** keeps it updating from GPS while feeding (car, boat, travel).
+  be entered by hand. **Mobile mode** (GPS updates while feeding, for a car or boat) was taken out
+  for launch, to keep the Play review to one foreground service type; git tag `with-mobile-mode`
+  has the last version with it.
 - **MLAT, on by default** (see [MLAT](#mlat)). Takes part in ADS-B Exchange multilateration,
   which is also how the **feeder name** reaches ADSBx: the name (optional, blank by default) is
   the MLAT name shown on ADSBx's MLAT sync pages. **Privacy** is on by default. The public MLAT
@@ -80,8 +82,7 @@ S10+ and a Pixel 10 Pro. Older phones (Android 7–10) are still to test. Brandi
 - **No surprise mobile data:** a phone at home with a SIM falls back to mobile data whenever
   Wi-Fi drops. If it has been on mobile data (or a metered Wi-Fi) for 30 s, feeding pauses the
   same way as the battery pauses, and resumes once it's back on Wi-Fi. A busy site's feed is a
-  few GB a month. **Feed over mobile data** in Settings turns this off, and Mobile mode always
-  feeds (`NetworkGuard`).
+  few GB a month. **Feed over mobile data** in Settings turns this off (`NetworkGuard`).
 - **Radar tab:** the aircraft this receiver hears, around it, north always at the top (no
   compass). Range rings; aircraft coloured by altitude on the ADS-B Exchange map's scale, with
   the callsign and altitude beside each; three-minute trails; and, once History has enough data,
@@ -113,7 +114,7 @@ S10+ and a Pixel 10 Pro. Older phones (Android 7–10) are still to test. Brandi
   - **milestones** (10,000 messages, 100 aircraft, 1 day feeding, and so on up), with progress to
     the next one;
   - a **reception range** plot: the furthest aircraft heard in each of 36 directions, with a Reset
-    for after the antenna moves. Not recorded in mobile mode;
+    for after the antenna moves;
   - MLAT sync pairs and messages.
 
   Only time connected to the feed counts. See [History](#history).
@@ -224,9 +225,9 @@ RTL-SDR ─USB─► ┌──────────────── :feeder
   - The feeder ID reaches readsb in a file (`--uuid-file`), not on its command line, so it isn't
     in the log either.
 - **Stationary by default.** Continuous GPS on a feeder that doesn't move costs battery and heat,
-  and indoor fixes wander. So: one careful fix, an occasional check, and Mobile mode only on request.
-- **Only foreground location permission.** Location is read while the app is open, or by the
-  service in mobile mode when it was started from the app. No background location permission.
+  and indoor fixes wander. So: one careful fix, and an occasional check.
+- **Only foreground location permission.** Location is read only while the app is open. No
+  background location permission, and the service has no location type (only `connectedDevice`).
 - **No screen-only work while nobody is looking.** Feeding and MLAT run the same whether the
   screen is on or not, but work that only serves the screen stops (no setting to turn it on):
   - readsb writes `aircraft.json` less often while the app isn't on screen: every 5 s while stats
@@ -331,7 +332,6 @@ requires one), privacy, and the receiver position and altitude.
 **When it runs.** MLAT is on by default but only starts when all of these are true
 (`data/Mlat.kt`):
 - feeding ADS-B Exchange;
-- not in Mobile mode;
 - location accurate to 15 m (the ADSBx setup's figure) or entered by hand;
 - an antenna altitude is known (GPS, which is height above the WGS84 ellipsoid as mlat-client
   expects, or entered by hand);
@@ -538,7 +538,6 @@ static-analysis finding. Findings reviewed as intended are annotated in the code
 8. Run the **power test**, on a charger and on battery: does the feeder need its wake lock? It
    also checks the phone doesn't kill the feeder with the screen off, and that readsb restarts on
    a real SDR. See "Power test" below.
-9. Try Mobile mode on a drive: Reception shows the position "following the phone".
 
 Useful logcat tags: `readsb` (debug builds only), `usb_shim`, `FeederService`, `libusb`.
 
@@ -594,7 +593,7 @@ are under Design choices.
 - **Real hardware:** USB open through the fd shim, zero-copy USB buffers (should fall back if
   SELinux blocks them), ARM builds, and Android 7–15.
 - **System flows the emulator can't show:** the USB attach prompt and auto-start, unplug/replug,
-  boot and app-update resume, battery-optimisation behaviour, and mobile mode on the move.
+  boot and app-update resume, and battery-optimisation behaviour.
 - **Android 12+ background restrictions** on sticky restarts after a crash (caught and logged).
   The battery pause relies on that restart too. On the Android 16 emulator it happens within a
   second, and the restarted service enters the foreground. If a phone refused, the status stays

@@ -49,7 +49,7 @@ data class History(
     val days: List<DayStats> = emptyList(),
     /**
      * Furthest position heard in each direction, nm: [RANGE_BEARINGS] sectors clockwise from north,
-     * 0 where nothing has been heard. Not recorded in mobile mode. Reset by the user since [rangeSinceMs].
+     * 0 where nothing has been heard. Reset by the user since [rangeSinceMs].
      */
     val rangeNm: List<Double> = List(RANGE_BEARINGS) { 0.0 },
     val rangeSinceMs: Long? = null,

@@ -149,7 +149,8 @@ class HistoryRecorder(
 
     /**
      * From a snapshot of readsb's aircraft.json: the addresses heard and the recent positions.
-     * [recordRange] is false in mobile mode, where a range plot around a moving receiver means nothing.
+     * [recordRange] is false for a moving receiver, where a range plot means nothing (the phone's
+     * Mobile mode, removed for launch; the desktop's copy of this class has the same parameter).
      */
     fun onAircraft(
         addresses: Collection<Int>, positions: Collection<HistorySamples.Position>, recordRange: Boolean,

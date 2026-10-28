@@ -26,7 +26,6 @@ import java.util.Locale
 fun mlatReadinessText(r: MlatReadiness, accuracyM: Float?): String? = when (r) {
     MlatReadiness.READY, MlatReadiness.OFF -> null
     MlatReadiness.NOT_FEEDING -> stringResource(R.string.mlat_wait_not_feeding)
-    MlatReadiness.MOBILE_MODE -> stringResource(R.string.mlat_wait_mobile)
     MlatReadiness.NO_LOCATION -> stringResource(R.string.mlat_wait_location)
     MlatReadiness.IMPRECISE -> stringResource(
         R.string.mlat_wait_imprecise, "%.0f".format(Locale.US, MLAT_ACCURACY_M),

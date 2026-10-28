@@ -58,8 +58,8 @@ object BatteryGuard {
  * Keeps the feed off mobile data unless the user allows it (security review B4). A phone at home
  * with a SIM falls back to mobile data whenever Wi-Fi drops, and a busy site's feed is a few GB a
  * month of someone's data allowance. So feeding pauses, the same way as [BatteryGuard]'s pauses,
- * and resumes when the phone is back on Wi-Fi (or any unmetered network). Mobile mode is for
- * feeding on the move, so it always feeds; so does a run that doesn't feed at all.
+ * and resumes when the phone is back on Wi-Fi (or any unmetered network). A run that doesn't
+ * feed at all carries on.
  */
 object NetworkGuard {
     /** Mobile data for this long before pausing, so a brief Wi-Fi drop doesn't restart readsb. */
@@ -71,7 +71,7 @@ object NetworkGuard {
      * (nothing is sent then).
      */
     fun wouldUseMobileData(metered: Boolean?, feeding: Boolean, settings: FeederSettings): Boolean =
-        metered == true && feeding && !settings.feedOverMobileData && !settings.mobileMode
+        metered == true && feeding && !settings.feedOverMobileData
 }
 
 /**

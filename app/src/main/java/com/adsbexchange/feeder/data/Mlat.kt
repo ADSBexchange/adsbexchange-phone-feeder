@@ -13,7 +13,6 @@ enum class MlatReadiness {
     /** Feeding to ADS-B Exchange is off, so there's no MLAT either. */
     NOT_FEEDING,
     /** A moving receiver can't do MLAT. */
-    MOBILE_MODE,
     NO_LOCATION,
     /** GPS fix not accurate enough; see [MLAT_ACCURACY_M]. */
     IMPRECISE,
@@ -30,7 +29,6 @@ fun FeederSettings.mlatReadiness(): MlatReadiness {
     return when {
         !mlatEnabled -> MlatReadiness.OFF
         !feedAdsbx -> MlatReadiness.NOT_FEEDING
-        mobileMode -> MlatReadiness.MOBILE_MODE
         loc == null -> MlatReadiness.NO_LOCATION
         loc.source != StationLocation.Source.MANUAL && (loc.accuracyM ?: Float.MAX_VALUE) > MLAT_ACCURACY_M ->
             MlatReadiness.IMPRECISE

@@ -166,14 +166,8 @@ private fun LocationSection(state: UiState, vm: MainViewModel) {
             }
             OutlinedButton(onClick = { manual = true }) { Text(stringResource(R.string.action_enter_manually)) }
         }
-        LabeledSwitch(
-            stringResource(R.string.mobile_mode), stringResource(R.string.mobile_mode_note),
-            state.settings.mobileMode, vm::setMobileMode,
-        )
-        if (!state.settings.mobileMode) {
-            Text(stringResource(R.string.stationary_note), style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
+        Text(stringResource(R.string.stationary_note), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     if (manual) ManualLocationDialog(state.settings.location, onDismiss = { manual = false }) { lat, lon ->
         manual = false

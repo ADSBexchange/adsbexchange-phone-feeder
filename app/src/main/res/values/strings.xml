@@ -86,7 +86,6 @@
     <string name="stats_starting">starting</string>
     <string name="stats_failing">not getting through (%1$s), retrying</string>
     <string name="detail_position">Receiver position (rounded)</string>
-    <string name="detail_position_live">Receiver position (following the phone, rounded)</string>
     <string name="feed_counted_note">Counted by the receiver on this phone. ADS-B Exchange knows this feed by its feeder ID, starting %1$s (full ID in Settings).</string>
     <string name="stat_msgs">msg/s</string>
     <string name="stat_aircraft">aircraft</string>
@@ -171,7 +170,6 @@
     <string name="mlat_reconnecting">Not connected to the MLAT server; retrying</string>
     <string name="mlat_denied">The MLAT server refused the connection: %1$s</string>
     <string name="mlat_wait_not_feeding">MLAT needs feeding to ADS-B Exchange turned on.</string>
-    <string name="mlat_wait_mobile">MLAT is paused in Mobile mode: it needs a receiver that isn\'t moving.</string>
     <string name="mlat_wait_location">MLAT is waiting for the receiver location.</string>
     <string name="mlat_wait_imprecise">MLAT needs a location accurate to %1$s m; the current fix is ±%2$s m. Try updating it near a window, or enter it manually.</string>
     <string name="mlat_wait_altitude">MLAT needs the antenna altitude. Enter it in Settings, or update the location from GPS.</string>
@@ -199,8 +197,6 @@
     <string name="locating_waiting">Waiting for a location fix…</string>
     <string name="locating_progress">Getting a precise fix… best so far ±%1$s m</string>
     <string name="location_permission_needed">Location access is off, so the receiver position can\'t be set automatically.</string>
-    <string name="mobile_mode">Mobile mode</string>
-    <string name="mobile_mode_note">Keep updating the position from GPS while feeding: for a car, boat or travel. Uses more battery.</string>
     <string name="stationary_note">The position is checked when you open the app, and updated automatically if the phone has moved.</string>
     <string name="manual_location_title">Enter the receiver location</string>
     <string name="manual_location_body">Decimal degrees, e.g. 43.08900 and -76.10300.</string>
@@ -253,7 +249,7 @@
     <string name="history_note">Counted on this phone while it\'s connected to ADS-B Exchange. Clearing the app\'s data resets it.</string>
     <string name="history_range">Reception range</string>
     <string name="history_range_since">The furthest aircraft heard in each direction since %1$s. Short spokes show where buildings or terrain block the antenna.</string>
-    <string name="history_range_empty">Builds up as aircraft are heard. Not recorded in mobile mode.</string>
+    <string name="history_range_empty">Builds up as aircraft are heard.</string>
     <string name="history_range_reset_title">Reset the range plot?</string>
     <string name="history_range_reset_body">It starts again from now, for example after you\'ve moved the antenna. The rest of your history stays.</string>
     <string name="action_reset">Reset</string>

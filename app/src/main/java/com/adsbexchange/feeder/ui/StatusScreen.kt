@@ -229,9 +229,9 @@ private fun LiveFeedCard(state: UiState, vm: MainViewModel, onShowAircraft: () -
         }
         if (r.receiverLat != null && r.receiverLon != null) {
             DetailRow(
-                stringResource(if (state.liveLocation != null) R.string.detail_position_live else R.string.detail_position),
-                // About 1 km: enough to see readsb has the position (and that it follows the phone in
-                // mobile mode). This screen is the one people screenshot; Settings shows it exactly.
+                stringResource(R.string.detail_position),
+                // About 1 km: enough to see readsb has the position. This screen is the one people
+                // screenshot; Settings shows it exactly.
                 "%.2f, %.2f".format(Locale.US, r.receiverLat, r.receiverLon),
             )
         } else {
@@ -308,7 +308,7 @@ private fun HealthCard(state: UiState) {
 
 @Composable
 private fun LinksCard(state: UiState) {
-    val loc = state.liveLocation ?: state.settings.location
+    val loc = state.settings.location
     val mlat = state.settings.mlatEnabled && state.settings.feedAdsbx
     if (loc == null && !mlat) return
     val context = LocalContext.current

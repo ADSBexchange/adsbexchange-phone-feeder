@@ -81,7 +81,6 @@ data class FeederSettings(
     val name: String,
     val location: StationLocation?,
     /** Keep updating the receiver position from GPS while feeding (car, boat, travel). */
-    val mobileMode: Boolean = false,
     val gain: String = "auto",
     val feedAdsbx: Boolean = true,
     /** Start when the SDR is plugged in and after the phone restarts. */
@@ -179,7 +178,7 @@ data class FeederSettings(
     private fun toJson(): JSONObject = JSONObject()
         .put("uuid", uuid).put("name", name)
         .put("location", location?.toJson() ?: JSONObject.NULL)
-        .put("mobileMode", mobileMode).put("gain", gain).put("feedAdsbx", feedAdsbx)
+        .put("gain", gain).put("feedAdsbx", feedAdsbx)
         .put("autoStart", autoStart).put("userStopped", userStopped)
         .put("onboardingDone", onboardingDone)
         .put("mlatEnabled", mlatEnabled).put("mlatPrivacy", mlatPrivacy)
@@ -302,7 +301,6 @@ data class FeederSettings(
                 uuid = o.optString("uuid"),
                 name = o.optString("name"),
                 location = StationLocation.fromJson(o.optJSONObject("location")),
-                mobileMode = o.optBoolean("mobileMode", false),
                 gain = o.optString("gain", "auto").ifBlank { "auto" },
                 feedAdsbx = o.optBoolean("feedAdsbx", true),
                 autoStart = o.optBoolean("autoStart", true),
