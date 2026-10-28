@@ -412,6 +412,11 @@ or upgrade a library, edit `gradle/libs.versions.toml` and then record the chang
 Review the diff of the three files before committing it. Checksums written this way are trusted
 on first use, so check a new dependency on its registry first.
 
+**Checks on GitHub:** every push and pull request to `main` runs the unit tests, lint and a
+debug build on Linux, from a clean machine, so a missing checksum or lockfile entry shows up
+there (`.github/workflows/ci.yml`). Nothing is signed and no secrets are used. The smoke test
+still runs on a PC, since it needs an emulator.
+
 Toolchain notes: on some Windows machines Java can't create its internal pipe under the default
 temp directory, hence `JAVA_TOOL_OPTIONS`. `sdkmanager` is now a wrapper around the `android` CLI; use
 `cmdline-tools\latest\bin\android.exe --no-metrics sdk install ndk/28.2.13676358`.
@@ -632,7 +637,7 @@ first Play upload.
   user chooses Battery > Unrestricted (`requestBatteryExemption()`). The partial wake lock may
   trip Android vitals' excessive wake lock metric; the power test checks whether the lock can go. The location foreground-service type needs a justification and video; the
   privacy policy and data-safety form are still to write.
-- **Release:** R8 shrinking (unshrunk today), CI. The copyright holder on the licenses screen
+- **Release:** R8 shrinking (unshrunk today). The copyright holder on the licenses screen
   (`ui/Licenses.kt`) is a placeholder.
 
 ## Licensing

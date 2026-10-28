@@ -1,0 +1,96 @@
+# Builds and tests every pull request into main, every push to it, and on request: the unit
+# tests, lint and a debug build, on Linux. Nothing is signed and no secrets are used. The
+# emulator smoke test (tools/smoke-test.ps1) isn't run here; it runs on a PC before a release.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Tests, lint and debug build
+    # While the repository is private, the LINUX_RUNNER variable (a JSON list of runner labels)
+    # picks the runner, as for the desktop feeder; otherwise GitHub's ubuntu-latest.
+    runs-on: ${{ github.event.repository.private && vars.LINUX_RUNNER && fromJSON(vars.LINUX_RUNNER) || 'ubuntu-latest' }}
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      # The versions app/build.gradle.kts asks for: compileSdk, ndkVersion and the CMake version.
+      # The runner's SDK may not have them yet.
+      - name: Android SDK packages
+        run: |
+          sdk="${ANDROID_HOME:?ANDROID_HOME isn't set: this runner has no Android SDK}"
+          sdkmanager="$sdk/cmdline-tools/latest/bin/sdkmanager"
+          compile=$(sed -nE 's/^ *compileSdk = ([0-9]+).*/\1/p' app/build.gradle.kts)
+          ndk=$(sed -nE 's/^ *ndkVersion = "([^"]+)".*/\1/p' app/build.gradle.kts)
+          cmake=$(sed -nE 's/^ *version = "(3\.[0-9.]+)".*/\1/p' app/build.gradle.kts | head -n 1)
+          echo "compileSdk $compile, NDK $ndk, CMake $cmake"
+          # `yes` ends on SIGPIPE when sdkmanager stops reading; that isn't a failure.
+          (yes || true) | "$sdkmanager" --licenses > /dev/null
+          "$sdkmanager" --install "platforms;android-$compile" "ndk;$ndk" "cmake;$cmake" > /dev/null
+
+      # The first build clones the C libraries pinned in app/src/main/cpp/cmake/deps.cmake.
+      # Dependency checksums (gradle/verification-metadata.xml) and lockfiles apply as locally.
+      - name: Unit tests, lint and debug build
+        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
+
+      - name: Summary
+        if: ${{ !cancelled() }}
+        run: |
+          tests=0; failed=0; skipped=0
+          for f in app/build/test-results/testDebugUnitTest/*.xml; do
+            [ -e "$f" ] || continue
+            t=$(grep -oE '<testsuite [^>]*' "$f" | head -n 1)
+            n() { echo "$t" | grep -oE " $1=\"[0-9]+\"" | grep -oE '[0-9]+' || echo 0; }
+            tests=$((tests + $(n tests))); failed=$((failed + $(n failures) + $(n errors))); skipped=$((skipped + $(n skipped)))
+          done
+          lint="not run"
+          if [ -f app/build/reports/lint-results-debug.xml ]; then
+            lint=$(grep -c 'severity="Error"' app/build/reports/lint-results-debug.xml || true)
+          fi
+          {
+            echo '### Build'
+            echo
+            echo '| | |'
+            echo '|---|---|'
+            echo "| Unit tests | $tests run, $failed failed, $skipped skipped |"
+            echo "| Lint errors | $lint |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload test and lint reports
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reports
+          path: |
+            app/build/reports/tests/testDebugUnitTest
+            app/build/test-results/testDebugUnitTest
+            app/build/reports/lint-results-debug.*
+          if-no-files-found: ignore
+          retention-days: 7
