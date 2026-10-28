@@ -2,7 +2,6 @@ package com.adsbexchange.feeder.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,7 +19,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.adsbexchange.feeder.BuildConfig
 import com.adsbexchange.feeder.R
 import com.adsbexchange.feeder.ui.theme.Brand
 import com.adsbexchange.feeder.ui.theme.DmSans
@@ -47,14 +44,6 @@ fun BrandHeader(modifier: Modifier = Modifier) {
                 Text(
                     stringResource(R.string.brand_product), color = Brand.Green, fontFamily = DmSans,
                     fontWeight = FontWeight.Medium, fontSize = 13.sp, lineHeight = 15.sp,
-                )
-            }
-            if (BuildConfig.BETA) {
-                // An outlined tag beside the name, in the product's green, until the full release.
-                Text(
-                    stringResource(R.string.beta_tag), color = Brand.Green, fontFamily = DmSans,
-                    fontWeight = FontWeight.Bold, fontSize = 12.sp, letterSpacing = 1.5.sp,
-                    modifier = Modifier.border(1.5.dp, Brand.Green, RoundedCornerShape(5.dp)).padding(horizontal = 8.dp, vertical = 2.dp),
                 )
             }
         }

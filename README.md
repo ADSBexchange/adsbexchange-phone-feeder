@@ -103,8 +103,6 @@ S10+ and a Pixel 10 Pro. Older phones (Android 7–10) are still to test. Brandi
   V4). readsb is built with `ENABLE_RTLSDR_BIASTEE`, and `rtlsdrClose()` turns the bias tee off
   again (librtlsdr's close leaves it on). The amplifier adds roughly 0.1–0.5 W. Like the gain, it
   applies when the receiver restarts. Not yet tried with a real stick and amplifier.
-- **Beta:** an outlined BETA tag in the header and "beta" in About, until `BETA` in
-  `app/build.gradle.kts` is turned off for the full release.
 - **Aircraft tab:** what this receiver hears, nearest first; tap one to open it on the ADSBx map.
 - **History tab:** this phone's lifetime contribution, there to keep people feeding:
   - totals: messages received, different aircraft, time feeding, data sent, and the start date;

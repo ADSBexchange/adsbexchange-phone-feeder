@@ -35,9 +35,6 @@ android {
         // invite behind it (today discord.gg/ad8SSMpWvH, which never expires) can change without
         // an app update. For now it opens their community page, one tap from Discord.
         buildConfigField("String", "SUPPORT_URL", "\"https://www.adsbexchange.com/discord\"")
-        // A beta build says so (the header and About), as the desktop feeder. The one switch to turn
-        // off for the full release.
-        buildConfigField("boolean", "BETA", "true")
         buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
 
         ndk {

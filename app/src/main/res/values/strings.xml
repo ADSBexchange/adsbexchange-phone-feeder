@@ -282,9 +282,6 @@
 
     <string name="settings_about">About</string>
     <string name="about_version">Version %1$s (%2$s)</string>
-    <string name="about_version_beta">Version %1$s beta (%2$s)</string>
-    <string name="about_beta">This is a beta: it works, and it\'s being tested before a full release. If something doesn\'t, tell us on Discord (Help, above).</string>
-    <string name="beta_tag">BETA</string>
     <string name="about_shared_title">What ADS-B Exchange receives</string>
     <string name="about_license_notice">This app is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License, version 3 or (at your option) any later version. It comes with ABSOLUTELY NO WARRANTY. It\'s built on readsb, librtlsdr, libusb, zstd and a port of mlat-client; see Open-source licenses.</string>
     <string name="action_source_code">Source code</string>

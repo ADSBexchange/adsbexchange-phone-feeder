@@ -299,15 +299,11 @@ private fun AboutSection(vm: MainViewModel) {
     SectionCard(stringResource(R.string.settings_about)) {
         // Tapped 7 times: developer options (the power test), as in Android's own settings.
         Text(
-            stringResource(if (BuildConfig.BETA) R.string.about_version_beta else R.string.about_version,
+            stringResource(R.string.about_version,
                 BuildConfig.VERSION_NAME, BuildConfig.GIT_COMMIT),
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.clickable { if (++versionTaps >= 7) vm.unlockDeveloper() },
         )
-        if (BuildConfig.BETA) {
-            Text(stringResource(R.string.about_beta), style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
         Text(stringResource(R.string.about_shared_title), style = MaterialTheme.typography.titleSmall)
         Text(stringResource(R.string.onboarding_privacy), style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
