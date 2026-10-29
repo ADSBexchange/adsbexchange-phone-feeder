@@ -123,6 +123,12 @@ hw.gpu.mode=swiftshader_indirect
     }
 }
 Write-Host "Device: $serial, $((Shell 'getprop ro.product.model').Trim()), Android $((Shell 'getprop ro.build.version.release').Trim()), ABI $((Shell 'getprop ro.product.cpu.abi').Trim())"
+# The emulator keeps its Wi-Fi setting between runs, and the mobile-data section turns it off and on.
+# Start every run on Wi-Fi, or feeding pauses for mobile data from the first second.
+Shell 'svc wifi enable' | Out-Null
+for ($i = 0; $i -lt 30 -and -not ((Shell 'dumpsys connectivity') -match 'Active default network: \d+' -and
+        (Shell 'dumpsys wifi') -match 'Wi-Fi is enabled'); $i++) { Start-Sleep -Seconds 1 }
+Start-Sleep -Seconds 3
 
 
 function UiXml {
