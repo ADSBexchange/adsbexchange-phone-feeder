@@ -340,7 +340,7 @@ $m = if (Test-Path $mlatSummary) { Get-Content $mlatSummary -Raw | ConvertFrom-J
 $h = $m.handshake
 Check ($null -ne $h) 'MLAT handshake received by the server'
 Check ($h.user -eq 'smoke-test' -and $h.uuid -eq $uuid) "handshake carries the feeder name and UUID ($($h.user))"
-Check ($h.privacy -eq $true) 'handshake has privacy on (the default)'
+Check ($h.privacy -eq $false) 'handshake has privacy off (the default, as on ADS-B Exchange''s own feeders)'
 Check ([math]::Abs($h.lat - $rx.lat) -lt 1e-6 -and [math]::Abs($h.lon - $rx.lon) -lt 1e-6 -and $h.alt -eq 100) `
     "handshake has the receiver position ($($h.lat), $($h.lon), $($h.alt) m)"
 Check ($h.clock_type -eq 'dump1090' -and $h.clock_frequency -eq 12000000 -and $h.version -eq 3) 'handshake clock and protocol fields'

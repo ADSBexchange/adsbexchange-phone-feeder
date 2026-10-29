@@ -165,12 +165,9 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     // --- actions -----------------------------------------------------------------------------
 
-    fun finishOnboarding(name: String, antennaConfirmed: Boolean = false) {
+    fun finishOnboarding(name: String, antennaWithin15m: Boolean = true) {
         saveSettings {
-            it.copy(
-                name = FeederSettings.sanitizeName(name), onboardingDone = true,
-                antennaConfirmed = it.antennaConfirmed || antennaConfirmed,
-            )
+            it.copy(name = FeederSettings.sanitizeName(name), onboardingDone = true, antennaWithin15m = antennaWithin15m)
         }
         onAppVisible()
     }
@@ -252,7 +249,7 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setMlatPrivacy(on: Boolean) = saveSettings { it.copy(mlatPrivacy = on) }
 
-    fun setAntennaConfirmed(on: Boolean) = saveSettings { it.copy(antennaConfirmed = on) }
+    fun setAntennaWithin15m(on: Boolean) = saveSettings { it.copy(antennaWithin15m = on) }
 
     /** Blank clears the override, so the GPS altitude is used again. */
     fun setAntennaAltitude(text: String) {
@@ -265,11 +262,6 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
         if (v == null || v !in -420.0..5100.0) return showMessage(context.getString(R.string.msg_altitude_invalid))
         saveSettings { it.copy(antennaAltitudeM = v) }
         showMessage(context.getString(R.string.msg_saved))
-    }
-
-    fun setStatsUploads(on: Boolean) {
-        saveSettings { it.copy(statsUploads = on) }
-        if (_state.value.feeding) showMessage(context.getString(R.string.msg_restart_to_apply))
     }
 
     /** [nm] 0 for Auto. Only the radar reads it, so nothing needs restarting. */
@@ -423,8 +415,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
             appendLine("Run: ${s.run}")
             if (r != null) appendLine("Receiver: live=${r.live} msg/s=${r.messagesPerSecond} aircraft=${r.aircraft.size} dropped=${r.samplesDropped} signal=${r.signalDbfs} noise=${r.noiseDbfs}")
             appendLine("Feed: feeding=${s.feedingAdsbx} state=${s.feed.state} reconnects=${s.feed.reconnects} sent=${s.feed.bytesSent} B upload=${s.feed.uploadBytesPerSec} B/s messages=${s.feed.messagesTotal} aircraftSeen=${s.feed.aircraftSeen}")
-            s.mlat?.let { appendLine("MLAT: enabled=${s.settings.mlatEnabled} privacy=${s.settings.mlatPrivacy} antennaConfirmed=${s.settings.antennaConfirmed} name=\"${s.settings.name}\" $it") }
-            appendLine("Stats uploads: setting=${s.settings.statsUploads} ${s.stats ?: "not running"}")
+            s.mlat?.let { appendLine("MLAT: enabled=${s.settings.mlatEnabled} privacy=${s.settings.mlatPrivacy} antennaWithin15m=${s.settings.antennaWithin15m} name=\"${s.settings.name}\" $it") }
+            appendLine("Stats uploads: ${s.stats ?: "not running"}")
             s.health?.let { appendLine("Health: $it") }
             s.history?.days?.filter { it.batteryMeanW != null }?.takeLast(7)?.takeIf { it.isNotEmpty() }?.let { days ->
                 val date = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC") }

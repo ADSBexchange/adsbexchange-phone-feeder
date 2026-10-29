@@ -45,9 +45,9 @@ import com.adsbexchange.feeder.R
 @Composable
 fun OnboardingScreen(state: UiState, vm: MainViewModel) {
     var name by rememberSaveable { mutableStateOf(state.settings.name) }
-    var antennaConfirmed by rememberSaveable { mutableStateOf(state.settings.antennaConfirmed) }
+    var antennaWithin15m by rememberSaveable { mutableStateOf(state.settings.antennaWithin15m) }
     val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        vm.finishOnboarding(name, antennaConfirmed)
+        vm.finishOnboarding(name, antennaWithin15m)
     }
     Surface(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
@@ -69,7 +69,7 @@ fun OnboardingScreen(state: UiState, vm: MainViewModel) {
 
                 LabeledSwitch(
                     stringResource(R.string.mlat_antenna_confirm), stringResource(R.string.onboarding_antenna_note),
-                    antennaConfirmed, onChange = { antennaConfirmed = it },
+                    antennaWithin15m, onChange = { antennaWithin15m = it },
                 )
 
                 Text(stringResource(R.string.onboarding_privacy), style = MaterialTheme.typography.bodySmall,

@@ -92,19 +92,24 @@ data class FeederSettings(
     val mlatEnabled: Boolean = true,
     /**
      * mlat-client --privacy: the public MLAT map shows no location for this feeder. Without it, the
-     * map shows one rounded to about 1 km. The name is listed either way.
+     * map shows one rounded to about 1 km. The name is listed either way. Off to start with, as on
+     * ADS-B Exchange's own feeders (with it on, their linked-receivers page hides the feeder's map
+     * marker and its feed and stats links); a settings file from before keeps what it has.
      */
-    val mlatPrivacy: Boolean = true,
-    /** The user confirmed the antenna is within about 15 m of the phone (MLAT needs a precise position). */
-    val antennaConfirmed: Boolean = false,
+    val mlatPrivacy: Boolean = false,
+    /**
+     * The antenna is within about 15 m of the phone, so MLAT can use the phone's position. Ticked to
+     * start with: on a phone the antenna is nearly always on a short cable. Saved as
+     * "antennaWithin15m"; 1.0.0's unticked-by-default "antennaConfirmed" is ignored, so a feeder that
+     * missed the box gets MLAT after updating.
+     */
+    val antennaWithin15m: Boolean = true,
     /** Antenna height in metres, if entered by hand; otherwise the GPS altitude is used. */
     val antennaAltitudeM: Double? = null,
     /** Alert when feeding has stopped working (see [FeedWatchdog]). */
     val feedAlerts: Boolean = true,
     /** Keep feeding when the phone is on mobile data (or another metered network); see [NetworkGuard]. */
     val feedOverMobileData: Boolean = false,
-    /** Send ADS-B Exchange the stats behind this feeder's listing; see [com.adsbexchange.feeder.service.StatsUploader]. */
-    val statsUploads: Boolean = true,
     /** The user asked to restart the range plot at this time; the feeder service applies it. */
     val rangeResetMs: Long? = null,
     /** The radar's range in nm, or 0 to fit the aircraft heard (see [com.adsbexchange.feeder.ui.RadarMath.autoRange]). */
@@ -182,12 +187,12 @@ data class FeederSettings(
         .put("autoStart", autoStart).put("userStopped", userStopped)
         .put("onboardingDone", onboardingDone)
         .put("mlatEnabled", mlatEnabled).put("mlatPrivacy", mlatPrivacy)
-        .put("antennaConfirmed", antennaConfirmed)
+        .put("antennaWithin15m", antennaWithin15m)
         .put("antennaAltitudeM", antennaAltitudeM ?: JSONObject.NULL)
         .put("feedAlerts", feedAlerts).put("rangeResetMs", rangeResetMs ?: JSONObject.NULL)
         .put("radarRangeNm", radarRangeNm)
         .put("biasTee", biasTee).put("radarAirports", radarAirports)
-        .put("feedOverMobileData", feedOverMobileData).put("statsUploads", statsUploads)
+        .put("feedOverMobileData", feedOverMobileData)
 
     companion object {
         const val ADSBX_HOST = "feed1.adsbexchange.com"
@@ -307,12 +312,11 @@ data class FeederSettings(
                 userStopped = o.optBoolean("userStopped", false),
                 onboardingDone = o.optBoolean("onboardingDone", false),
                 mlatEnabled = o.optBoolean("mlatEnabled", true),
-                mlatPrivacy = o.optBoolean("mlatPrivacy", true),
-                antennaConfirmed = o.optBoolean("antennaConfirmed", false),
+                mlatPrivacy = o.optBoolean("mlatPrivacy", false),
+                antennaWithin15m = o.optBoolean("antennaWithin15m", true),
                 antennaAltitudeM = o.optDoubleOrNull("antennaAltitudeM"),
                 feedAlerts = o.optBoolean("feedAlerts", true),
                 feedOverMobileData = o.optBoolean("feedOverMobileData", false),
-                statsUploads = o.optBoolean("statsUploads", true),
                 rangeResetMs = o.optDoubleOrNull("rangeResetMs")?.toLong(),
                 radarRangeNm = o.optInt("radarRangeNm", 0),
                 biasTee = o.optBoolean("biasTee", false),

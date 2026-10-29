@@ -1,5 +1,9 @@
 # ADS-B Exchange Phone Feeder
 
+[![CI](https://github.com/ADSBexchange/adsbexchange-phone-feeder/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ADSBexchange/adsbexchange-phone-feeder/actions/workflows/ci.yml?query=branch%3Amain)
+[![Security scan](https://github.com/ADSBexchange/adsbexchange-phone-feeder/actions/workflows/security.yml/badge.svg?branch=main)](https://github.com/ADSBexchange/adsbexchange-phone-feeder/actions/workflows/security.yml?query=branch%3Amain)
+[![CodeQL](https://github.com/ADSBexchange/adsbexchange-phone-feeder/actions/workflows/codeql.yml/badge.svg?branch=main)](https://github.com/ADSBexchange/adsbexchange-phone-feeder/actions/workflows/codeql.yml?query=branch%3Amain)
+
 Turns an Android phone with an RTL-SDR USB receiver into an ADS-B Exchange feeder. Plug the SDR
 in and it feeds: no root, no Termux, no separate driver app. The app opens the SDR through
 Android's USB host API and runs [readsb](https://github.com/wiedehopf/readsb) itself.
@@ -27,8 +31,10 @@ S10+ and a Pixel 10 Pro. Older phones (Android 7–10) are still to test. Brandi
   has the last version with it.
 - **MLAT, on by default** (see [MLAT](#mlat)). Takes part in ADS-B Exchange multilateration,
   which is also how the **feeder name** reaches ADSBx: the name (optional, blank by default) is
-  the MLAT name shown on ADSBx's MLAT sync pages. **Privacy** is on by default. The public MLAT
-  map lists feeders by name either way; with privacy off it also shows the feeder at an
+  the MLAT name shown on ADSBx's MLAT sync pages. **Privacy** is off to start with, as on ADS-B
+  Exchange's own feeders (with it on, their linked-receivers page hides the feeder's map marker
+  and its feed and stats links); an older install keeps what it had. The public MLAT map lists
+  feeders by name either way; with privacy off it also shows the feeder at an
   approximate location: ADSBx publishes positions rounded to 0.01° (about 1 km), never the precise
   one MLAT uses. With privacy on it shows no location. (Checked against the map's `sync.json`,
   2026-10-11: every coordinate has at most two decimals, and private feeders have none.)
@@ -75,9 +81,10 @@ S10+ and a Pixel 10 Pro. Older phones (Android 7–10) are still to test. Brandi
   what ADS-B Exchange's own feeder kits send alongside the feed (the `adsbexchange-stats`
   package's `json-status` script), and it uses the same request. Without it ADS-B Exchange lists
   the feeder as "beast-only": the feed arrives, but there are no statistics (aircraft seen,
-  positions, range, uptime), and the feeder isn't on the leaderboard or in the Feeder Hub. On by
-  default and recommended, with a switch and a link to the feeder's stats page in Settings. About 1–10 GB a month
-  depending on traffic, so it pauses with the feed on mobile data. Ported from the desktop feeder
+  positions, range, uptime), and the feeder isn't on the leaderboard or in the Feeder Hub. So
+  they're part of feeding, with no switch (as on the desktop feeder, 0.5.21); Settings explains
+  them and links the feeder's stats page. About 1–10 GB a month depending on traffic, so they
+  pause with the feed on mobile data. Ported from the desktop feeder
   (`service/StatsUploader.kt`).
 - **No surprise mobile data:** a phone at home with a SIM falls back to mobile data whenever
   Wi-Fi drops. If it has been on mobile data (or a metered Wi-Fi) for 30 s, feeding pauses the
@@ -335,7 +342,8 @@ requires one), privacy, and the receiver position and altitude.
 - location accurate to 15 m (the ADSBx setup's figure) or entered by hand;
 - an antenna altitude is known (GPS, which is height above the WGS84 ellipsoid as mlat-client
   expects, or entered by hand);
-- the user has confirmed the antenna is within about 15 m of the phone.
+- the antenna is within about 15 m of the phone: a box that starts ticked, since on a phone the
+  antenna is nearly always on a short cable (1.0.0's unticked box is ignored on update).
 
 Until then the app says exactly what it's waiting for, with a one-tap fix where there is one.
 

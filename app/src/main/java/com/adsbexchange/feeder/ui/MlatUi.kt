@@ -63,7 +63,7 @@ fun MlatBlock(state: UiState, vm: MainViewModel) {
         Text(text, style = MaterialTheme.typography.bodyMedium)
     }
     when (m.readiness) {
-        MlatReadiness.NOT_CONFIRMED -> FilledTonalButton(onClick = { vm.setAntennaConfirmed(true) }) {
+        MlatReadiness.NOT_CONFIRMED -> FilledTonalButton(onClick = { vm.setAntennaWithin15m(true) }) {
             Text(stringResource(R.string.action_confirm_antenna))
         }
         MlatReadiness.IMPRECISE, MlatReadiness.NO_LOCATION -> FilledTonalButton(onClick = vm::updateLocationFromGps) {

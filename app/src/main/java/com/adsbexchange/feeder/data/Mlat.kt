@@ -33,7 +33,7 @@ fun FeederSettings.mlatReadiness(): MlatReadiness {
         loc.source != StationLocation.Source.MANUAL && (loc.accuracyM ?: Float.MAX_VALUE) > MLAT_ACCURACY_M ->
             MlatReadiness.IMPRECISE
         mlatAltitudeM()?.let { it in -420.0..5100.0 } != true -> MlatReadiness.NO_ALTITUDE
-        !antennaConfirmed -> MlatReadiness.NOT_CONFIRMED
+        !antennaWithin15m -> MlatReadiness.NOT_CONFIRMED
         else -> MlatReadiness.READY
     }
 }

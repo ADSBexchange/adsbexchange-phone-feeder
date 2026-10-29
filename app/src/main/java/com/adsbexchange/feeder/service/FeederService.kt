@@ -331,11 +331,12 @@ class FeederService : Service() {
         val args = settings.readsbArgs(paths, server.port, feedTo, inputFile, beastPort = beastPort)
         feedWatcher = feedTo?.let { FeedLogWatcher(paths.logFile, it) }
         uiVisible = UiVisibility.read(paths)
-        // Stats uploads go with the ADS-B Exchange feed. Smoke tests send them to a local stand-in
-        // only, and never to ADS-B Exchange.
+        // Stats uploads are part of feeding ADS-B Exchange (there's no switch; an old settings file's
+        // "statsUploads": false is ignored). Smoke tests send them to a local stand-in only, and never
+        // to ADS-B Exchange.
         val statsUrl = when {
             smokeMode -> smokeStatsUrl
-            feedTo == FeederSettings.ADSBX_FEED && settings.statsUploads -> StatsUploader.UPLOAD_URL
+            feedTo == FeederSettings.ADSBX_FEED -> StatsUploader.UPLOAD_URL
             else -> null
         }
         NativeFeeder.setJsonPaused(!uiVisible)

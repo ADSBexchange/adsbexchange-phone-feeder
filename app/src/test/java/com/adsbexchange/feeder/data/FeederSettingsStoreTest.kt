@@ -142,4 +142,25 @@ class FeederSettingsStoreTest {
         FeederSettings.update(paths) { it.copy(radarAirports = false) }
         assertTrue(!FeederSettings.load(paths).radarAirports)
     }
+
+    /** As the desktop feeder (0.5.21): MLAT privacy off and the antenna box ticked, for a new install. */
+    @Test
+    fun aNewInstallStartsWithPrivacyOffAndTheAntennaBoxTicked() {
+        val s = FeederSettings.load(paths)
+        assertTrue("privacy off, as on ADS-B Exchange's own feeders", !s.mlatPrivacy)
+        assertTrue("antenna within 15 m", s.antennaWithin15m)
+    }
+
+    @Test
+    fun anOlderSettingsFileKeepsItsPrivacyButNotTheOldAntennaBoxOrStatsSwitch() {
+        val uuid = FeederSettings.load(paths).uuid
+        paths.settingsFile.writeText(
+            """{"uuid":"$uuid","name":"","mlatPrivacy":true,"antennaConfirmed":false,"statsUploads":false}"""
+        )
+        val s = FeederSettings.load(paths)
+        assertTrue("privacy chosen before is kept", s.mlatPrivacy)
+        assertTrue("1.0.0's unticked box is ignored", s.antennaWithin15m)
+        FeederSettings.update(paths) { it }
+        assertTrue("the old stats switch isn't saved again", "statsUploads" !in paths.settingsFile.readText())
+    }
 }

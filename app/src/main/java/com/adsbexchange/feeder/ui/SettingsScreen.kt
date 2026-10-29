@@ -117,7 +117,7 @@ private fun MlatSection(state: UiState, vm: MainViewModel) {
         if (s.mlatEnabled) {
             LabeledSwitch(stringResource(R.string.mlat_privacy), stringResource(R.string.mlat_privacy_note), s.mlatPrivacy, vm::setMlatPrivacy)
             LabeledSwitch(stringResource(R.string.mlat_antenna_confirm), stringResource(R.string.mlat_antenna_confirm_note),
-                s.antennaConfirmed, vm::setAntennaConfirmed)
+                s.antennaWithin15m, vm::setAntennaWithin15m)
             OutlinedTextField(
                 value = alt, onValueChange = { alt = it },
                 label = { Text(stringResource(R.string.mlat_altitude)) },
@@ -226,13 +226,13 @@ private fun FeedingSection(state: UiState, vm: MainViewModel) {
             state.settings.feedAdsbx, vm::setFeedAdsbx)
         LabeledSwitch(stringResource(R.string.auto_start), stringResource(R.string.auto_start_note),
             state.settings.autoStart, vm::setAutoStart)
-        LabeledSwitch(stringResource(R.string.stats_uploads), stringResource(R.string.stats_uploads_note),
-            state.settings.statsUploads, vm::setStatsUploads)
-        if (state.settings.statsUploads) {
-            val context = LocalContext.current
-            TextButton(onClick = { openUrl(context, StatsUploader.statsPageUrl(state.settings.uuid)) }) {
-                Text(stringResource(R.string.action_stats_page))
-            }
+        // Stats are part of feeding ADS-B Exchange: no switch, just what they are and the stats page.
+        Text(stringResource(R.string.stats_uploads), style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.stats_uploads_note), style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val context = LocalContext.current
+        TextButton(onClick = { openUrl(context, StatsUploader.statsPageUrl(state.settings.uuid)) }) {
+            Text(stringResource(R.string.action_stats_page))
         }
         LabeledSwitch(stringResource(R.string.feed_mobile_data), stringResource(R.string.feed_mobile_data_note),
             state.settings.feedOverMobileData, vm::setFeedOverMobileData)
