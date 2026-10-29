@@ -1,0 +1,16 @@
+# Keeps the SHA-pinned actions in .github/workflows up to date, a week after each release, in one
+# grouped pull request into main. Gradle and the C libraries are updated by hand: a Gradle update
+# also needs the lockfiles and gradle/verification-metadata.xml regenerated (see the README's
+# Build section), and a C library is a pinned commit in app/src/main/cpp/cmake/deps.cmake.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    target-branch: main
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ['*']

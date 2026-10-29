@@ -30,7 +30,7 @@ param()
 
 $ErrorActionPreference = 'Stop'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$raw = Join-Path $root 'build\security-scan'
+$raw = [IO.Path]::Combine($root, 'build', 'security-scan')
 $committed = Join-Path $root 'security'
 New-Item -ItemType Directory -Force $raw, $committed | Out-Null
 
@@ -74,7 +74,7 @@ if (-not $osv) { throw 'osv-scanner produced no report' }
 # Every locked package ("group:name:version") and whether it ships: the lockfiles record which
 # Gradle configurations use it, and only (debug|release)RuntimeClasspath goes into the APK.
 $locked = @{}
-foreach ($lockfile in 'app\gradle.lockfile', 'buildscript-gradle.lockfile') {
+foreach ($lockfile in 'app/gradle.lockfile','buildscript-gradle.lockfile') {
     foreach ($line in Get-Content (Join-Path $root $lockfile)) {
         if ($line -match '^([^#=][^=]*:[^:=]+)=(.+)$') {
             $key, $configurations = $Matches[1], ($Matches[2] -split ',')
@@ -107,7 +107,7 @@ Write-Host "  $packageCount packages: $($shippedVulns.Count) vulnerable in the A
 foreach ($v in $shippedVulns) { $blocking.Add("Vulnerable library in the APK: $($v.Package) ($($v.Ids))") }
 
 Step 'C libraries (OSV, by pinned commit)'
-$native = foreach ($line in Get-Content (Join-Path $root 'app\src\main\cpp\cmake\deps.cmake')) {
+$native = foreach ($line in Get-Content (Join-Path $root 'app/src/main/cpp/cmake/deps.cmake')) {
     if ($line -match '^fetch_dep\((\S+)\s+(\S+)\s+([0-9a-f]{40})\)\s*#\s*(.*)$') {
         [pscustomobject]@{ Name = $Matches[1]; Url = $Matches[2]; Commit = $Matches[3]; Note = $Matches[4].Trim() }
     }
@@ -139,8 +139,9 @@ foreach ($f in $findings) { $blocking.Add("Static analysis: $($f.check_id -repla
 
 # --- SBOM -------------------------------------------------------------------------------------
 Step 'Software Bill of Materials (syft + the C libraries)'
+# One argument each: PowerShell on Linux expands a separate "./build/**" against the file system.
 Run (@('--network', 'none') + $mount + @($images.syft.ref, 'scan', 'dir:/repo',
-        '--exclude', './app/src/main/cpp/third_party/**', '--exclude', './**/build/**', '--exclude', './app/.cxx/**', '--exclude', './.gradle/**', '--exclude', './.claude/**',
+        '--exclude=./app/src/main/cpp/third_party/**', '--exclude=./**/build/**', '--exclude=./app/.cxx/**', '--exclude=./.gradle/**', '--exclude=./.claude/**',
         '-o', 'cyclonedx-json=/out/sbom-syft.cdx.json')) | Out-Null
 $sbom = ReadJson 'sbom-syft.cdx.json'
 if (-not $sbom) { throw 'syft produced no SBOM' }

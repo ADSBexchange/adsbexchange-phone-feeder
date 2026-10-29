@@ -1,0 +1,61 @@
+name: Bug report
+description: Something in the app doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For help getting set up, ask on ADS-B Exchange's Discord server (Settings > Help > Get help on Discord in the app).
+        Security problems go through the Security tab, not an issue (see SECURITY.md).
+
+        Please don't paste or attach the output of "Share diagnostics" or the log from Settings > Help: they include your feeder's ID, which identifies your feeder. (They leave out your location.) A maintainer will ask for what's needed privately.
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Settings > About.
+      placeholder: "1.0.0 (abc1234)"
+    validations:
+      required: true
+  - type: input
+    id: phone
+    attributes:
+      label: Phone model
+      placeholder: "Pixel 7 Pro"
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android version
+      description: Settings > About phone > Android version, on the phone.
+      placeholder: "Android 16"
+    validations:
+      required: true
+  - type: input
+    id: sdr
+    attributes:
+      label: SDR
+      description: Make and model, and any amplifier or filter between it and the antenna.
+      placeholder: "ADS-B Exchange stick, no amplifier"
+  - type: input
+    id: connection
+    attributes:
+      label: How the SDR is connected
+      description: The adapter or hub between the phone and the SDR, any extension cable, and whether the phone is charging through it.
+      placeholder: "USB-C OTG adapter, 1 m extension cable, on a charger through a powered hub"
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead. Include any message the app showed.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.

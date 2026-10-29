@@ -1,0 +1,99 @@
+# CodeQL code scanning of the Kotlin and C sources, on pull requests, on pushes to main, and
+# weekly. Results go to the repository's Security tab. Code scanning is available to public
+# repositories, so the analysis runs only while this one is public; the first job checks, since a
+# scheduled run's event carries no repository details.
+name: CodeQL
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '23 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: codeql-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  visibility:
+    name: Check visibility
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      public: ${{ steps.check.outputs.public }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: echo "public=$(gh api "repos/$GITHUB_REPOSITORY" --jq '.private | not')" >> "$GITHUB_OUTPUT"
+
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    needs: visibility
+    if: ${{ needs.visibility.outputs.public == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Compiled with Gradle so CodeQL sees the Kotlin as the compiler does.
+          - language: java-kotlin
+            build-mode: manual
+          # Analysed without a build. The C this project wrote (app/src/main/cpp) is a few files;
+          # a traced NDK build would also compile readsb, librtlsdr, libusb and zstd, which
+          # deps.cmake clones into the checkout, and report their upstream code as ours. Without a
+          # build, CodeQL reads only what's committed.
+          - language: c-cpp
+            build-mode: none
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        if: ${{ matrix.language == 'java-kotlin' }}
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      # As in ci.yml: the versions app/build.gradle.kts asks for (compileSdk, ndkVersion and the
+      # CMake version), which the runner's SDK may not have yet. Compiling the Kotlin needs only
+      # the platform; the NDK and CMake are installed as well, so Gradle sees the same SDK as in CI.
+      - name: Android SDK packages
+        if: ${{ matrix.language == 'java-kotlin' }}
+        run: |
+          sdk="${ANDROID_HOME:?ANDROID_HOME isn't set: this runner has no Android SDK}"
+          sdkmanager="$sdk/cmdline-tools/latest/bin/sdkmanager"
+          compile=$(sed -nE 's/^ *compileSdk = ([0-9]+).*/\1/p' app/build.gradle.kts)
+          ndk=$(sed -nE 's/^ *ndkVersion = "([^"]+)".*/\1/p' app/build.gradle.kts)
+          cmake=$(sed -nE 's/^ *version = "(3\.[0-9.]+)".*/\1/p' app/build.gradle.kts | head -n 1)
+          echo "compileSdk $compile, NDK $ndk, CMake $cmake"
+          # `yes` ends on SIGPIPE when sdkmanager stops reading; that isn't a failure.
+          (yes || true) | "$sdkmanager" --licenses > /dev/null
+          "$sdkmanager" --install "platforms;android-$compile" "ndk;$ndk" "cmake;$cmake" > /dev/null
+
+      - uses: github/codeql-action/init@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      # Only the Kotlin compiles (the app with its debug sources, and the unit tests), which is all
+      # CodeQL reads: no native build, no dexing or packaging, nothing signed.
+      - name: Compile
+        if: ${{ matrix.build-mode == 'manual' }}
+        run: ./gradlew --no-daemon :app:compileDebugKotlin :app:compileDebugUnitTestKotlin
+
+      - uses: github/codeql-action/analyze@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4.39.0
+        with:
+          category: /language:${{ matrix.language }}

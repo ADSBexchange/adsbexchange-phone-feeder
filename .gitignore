@@ -17,3 +17,6 @@ app/src/main/cpp/third_party/
 
 # Claude Code local tooling (preview server settings, worktrees): not part of the project.
 .claude/
+
+# Security scan output (tools/security-scan.ps1): attach it to a release review; it is not committed.
+/security/
