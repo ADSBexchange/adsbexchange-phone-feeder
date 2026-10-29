@@ -75,4 +75,11 @@ class MlatCoordinatorTest {
         }
         assertEquals(listOf(icao), server.seen.flatten())
     }
+
+    /** The server can't grow the request list without limit (security report MF-LOG-04). */
+    @Test
+    fun theServerCantAskForMoreThanTheCap() {
+        coordinator.serverStartSending((0 until MAX_REQUESTED + 500).toList())
+        assertEquals(MAX_REQUESTED, coordinator.requestedCount)
+    }
 }

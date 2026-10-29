@@ -225,6 +225,10 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun stop() {
+        // A restart waiting out its 3 s would otherwise start feeding again after this Stop
+        // (security report MF-LOG-08).
+        pendingStart?.cancel()
+        pendingStart = null
         saveSettings { it.copy(userStopped = true) }
         FeederService.stop(context)
     }
@@ -366,7 +370,8 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
                 showMessage(context.getString(R.string.msg_power_test_charge, PowerTest.MIN_START_PERCENT))
             else -> {
                 FeederService.stop(context)
-                viewModelScope.launch {
+                pendingStart?.cancel()
+                pendingStart = viewModelScope.launch {
                     delay(3_000)
                     PowerTest.write(paths, PowerTest.start(System.currentTimeMillis()))
                     saveSettings { it.copy(userStopped = false) }
@@ -390,12 +395,16 @@ class MainViewModel(app: Application) : AndroidViewModel(app) {
 
     fun restart() {
         FeederService.stop(context)
-        viewModelScope.launch {
+        pendingStart?.cancel()
+        pendingStart = viewModelScope.launch {
             delay(3_000)
             saveSettings { it.copy(userStopped = false) }
             startService()
         }
     }
+
+    /** A start waiting after [restart] or [startPowerTest]; [stop] cancels it. */
+    private var pendingStart: Job? = null
 
     fun messageShown() = _state.update { it.copy(message = null) }
 

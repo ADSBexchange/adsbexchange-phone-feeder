@@ -225,4 +225,13 @@ class StatsUploaderTest {
             u.stop()
         }
     }
+
+    /** readsb's receiver-position estimate goes with the distances, or nothing goes (security report MF-LOG-11). */
+    @Test
+    fun receiverEstimateIsLeftOutWithTheDistances() {
+        val withEstimate = aircraftJson.replace("\"r_dir\":45.6", "\"r_dir\":45.6,\"rr_lat\":43.1,\"rr_lon\":-76.5")
+        val text = StatsUploader.payloadJson(withEstimate, uuid, includeRange = false)!!
+        assertFalse(text.contains("rr_lat") || text.contains("rr_lon"))
+        assertNull(StatsUploader.payloadJson(withEstimate.replace("\"rr_lat\":43.1", "\"rr_lat\": 43.1"), uuid, false))
+    }
 }

@@ -200,8 +200,9 @@ class HistoryStore(private val paths: FeederPaths, private val log: (String) -> 
             RandomAccessFile(file, "rw").use { it.setLength(whole.toLong()) }
             log("history: dropped ${bytes.size - whole} bytes of a partial record at the end of ${file.name}")
         }
-        val aircraft = HashSet<Int>(whole / 4 * 2)
-        DataInputStream(bytes.inputStream(0, whole)).use { input -> repeat(whole / 4) { aircraft += input.readInt() } }
+        val count = minOf(whole / 4, HistoryRecorder.MAX_AIRCRAFT)
+        val aircraft = HashSet<Int>(count * 2)
+        DataInputStream(bytes.inputStream(0, whole)).use { input -> repeat(count) { aircraft += input.readInt() } }
         return aircraft
     }
 

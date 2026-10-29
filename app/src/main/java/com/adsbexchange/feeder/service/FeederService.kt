@@ -31,6 +31,7 @@ import com.adsbexchange.feeder.R
 import com.adsbexchange.feeder.data.BatteryGuard
 import com.adsbexchange.feeder.data.NetworkGuard
 import com.adsbexchange.feeder.data.FeedState
+import com.adsbexchange.feeder.data.appendAppLog
 import com.adsbexchange.feeder.data.writeAtomically
 import com.adsbexchange.feeder.data.FeedWatchdog
 import com.adsbexchange.feeder.data.ChargeWatchdog
@@ -56,6 +57,7 @@ import com.adsbexchange.feeder.data.FeederStatus.Reason
 import com.adsbexchange.feeder.data.FeederStatus.State
 import com.adsbexchange.feeder.data.FeedLogWatcher
 import com.adsbexchange.feeder.data.UiVisibility
+import com.adsbexchange.feeder.data.UsbAttach
 import com.adsbexchange.feeder.data.readQuickStats
 import com.adsbexchange.feeder.data.RtlSdrDevices
 import com.adsbexchange.feeder.data.StationLocation
@@ -64,8 +66,6 @@ import java.io.File
 import java.io.IOException
 import java.net.InetAddress
 import java.net.ServerSocket
-import java.text.SimpleDateFormat
-import java.util.Date
 import java.util.Locale
 
 /**
@@ -191,6 +191,7 @@ class FeederService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
             FeederSettings.update(this) { it.copy(userStopped = true) }
+            UsbAttach.markAttachedSeen(this)
             BatteryGuard.Hold.clear(paths)
             stopFeeder(Reason.USER_STOPPED)
             return START_NOT_STICKY
@@ -201,7 +202,8 @@ class FeederService : Service() {
         val hold = BatteryGuard.Hold.read(paths)
         if (intent != null) {
             restartBudget.reset()
-        } else if (hold == null && !restartBudget.consumeExpected() && !restartBudget.allow(System.currentTimeMillis())) {
+        } else if (hold == null && !restartBudget.consumeExpected() && !portWasTaken() &&
+            !restartBudget.allow(System.currentTimeMillis())) {
             // Android restarted the service after readsb ended its process, again and again.
             log("readsb exited ${RestartBudget.MAX_EXITS} times in ${RestartBudget.WINDOW_MS / 60_000} minutes; giving up")
             Notifications.alert(this, getString(R.string.alert_sdr_failing_title), getString(R.string.alert_sdr_failing_text))
@@ -210,7 +212,19 @@ class FeederService : Service() {
             return START_NOT_STICKY
         }
 
-        val settings = FeederSettings.load(this)
+        var settings = FeederSettings.load(this)
+        // An explicit start (the app's Start, a plug-in, boot, a restart) means feeding is wanted,
+        // so a later restart by Android mustn't take an earlier Stop as still standing.
+        if (intent != null && settings.userStopped) settings = FeederSettings.update(this) { it.copy(userStopped = false) }
+        if (intent == null && (!settings.onboardingDone || settings.userStopped)) {
+            // Android restarted the service by itself, but there's nothing the user wants fed: Stop
+            // was tapped, or settings.json couldn't be read and came back as a first run, with
+            // feeding on by default (security report MF-LOG-05). Wait for the app or a plug-in.
+            log("not resuming: ${if (settings.userStopped) "stopped by the user" else "setup not done (settings unreadable?)"}")
+            publish { FeederStatus(State.STOPPED, Reason.USER_STOPPED) }
+            stopSelf(startId)
+            return START_NOT_STICKY
+        }
         val smokeFile = intent?.getStringExtra(EXTRA_SMOKE_IFILE)?.takeIf { BuildConfig.DEBUG }
         if (!enterForeground()) {
             // A pause stays a pause: the app resumes it (and the hold) next time it's opened.
@@ -325,9 +339,20 @@ class FeederService : Service() {
             log("history: can't be read ($e); not recording history this run, so it isn't written over")
             history = null
             historyStore = null
+        } catch (e: OutOfMemoryError) {
+            // Feeding matters more than History: never let it stop the receiver starting (security
+            // report MF-LOG-12).
+            log("history: too big to load ($e); not recording history this run")
+            history = null
+            historyStore = null
         }
         paths.uuidFile.writeAtomically(settings.uuid)
-        beastPort = freeLoopbackPort()
+        beastPort = try {
+            freeLoopbackPort()
+        } catch (e: IOException) {
+            log("no free loopback port for readsb ($e)")
+            return stopFeeder(Reason.START_FAILED)
+        }
         val args = settings.readsbArgs(paths, server.port, feedTo, inputFile, beastPort = beastPort)
         feedWatcher = feedTo?.let { FeedLogWatcher(paths.logFile, it) }
         uiVisible = UiVisibility.read(paths)
@@ -443,9 +468,12 @@ class FeederService : Service() {
             // Smoke tests (MLAT against the stand-in server) log every 5 s so a short run shows a line.
             mlatSyncLog = MlatSyncLog(if (smoke != null) 5_000L else MlatSyncLog.EVERY_MS).apply { restart(System.currentTimeMillis()) }
             mlatConfig = wanted
-            mlatSendsPosition = wanted != null
         }
         val s = mlatClient?.stats
+        // Only once the MLAT server has accepted the handshake that carries the position: a
+        // configured but unreachable or refusing server hasn't been sent it (security report MF-SEC-08).
+        // Checked every tick, so the stats uploads follow MLAT connecting and dropping.
+        mlatSendsPosition = s?.state == MlatClient.State.CONNECTED
         s?.let { stats -> mlatSyncLog.next(stats, System.currentTimeMillis())?.let { log(it) } }
         val next = MlatStatus(
             readiness = if (wanted == null && readiness == MlatReadiness.READY) MlatReadiness.NO_LOCATION else readiness,
@@ -874,6 +902,25 @@ class FeederService : Service() {
 
     private fun log(message: String) = appendLog(this, message)
 
+    /**
+     * Whether the last run ended because another app took readsb's loopback port in the moment
+     * between [freeLoopbackPort] and readsb binding it. That isn't the SDR failing, so it doesn't
+     * count towards the [RestartBudget] (security report MF-LOG-06); the next run picks a new port.
+     */
+    private fun portWasTaken(): Boolean {
+        val taken = runCatching {
+            val f = paths.logFile
+            java.io.RandomAccessFile(f, "r").use { raf ->
+                val from = maxOf(0L, raf.length() - 8192)
+                raf.seek(from)
+                val tail = ByteArray((raf.length() - from).toInt()).also { raf.readFully(it) }
+                String(tail, Charsets.UTF_8).contains("Error opening the listening port")
+            }
+        }.getOrDefault(false)
+        if (taken) log("readsb's loopback port was taken by another app; starting again with a new one")
+        return taken
+    }
+
     /** A loopback port that's free now: the system picks one, and it's released for readsb to bind. */
     // nosemgrep: kotlin.lang.security.unencrypted-socket.unencrypted-socket - loopback, opened and closed at once, no traffic
     private fun freeLoopbackPort(): Int = ServerSocket(0, 1, InetAddress.getLoopbackAddress()).use { it.localPort }
@@ -925,11 +972,9 @@ class FeederService : Service() {
 
         /** Appends a `[feeder]` line to readsb.log so it shows in the app's log view. */
         fun appendLog(context: Context, message: String) {
-            Log.i("FeederService", message)
-            val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date())
-            runCatching {
-                FeederPaths(context).apply { root.mkdirs() }.logFile.appendText("[$time] [feeder] $message\n")
-            }
+            // Logcat only in debug builds, like readsb's output (security report MF-SEC-12).
+            if (BuildConfig.DEBUG) Log.i("FeederService", message)
+            appendAppLog(FeederPaths(context), message)
         }
     }
 }

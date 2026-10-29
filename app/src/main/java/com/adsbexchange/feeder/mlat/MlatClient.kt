@@ -243,7 +243,7 @@ class MlatClient(
         open fun sent(n: Int) {}
 
         fun fail(e: Exception) {
-            log("mlat: connection to $label lost: ${e.message ?: e}")
+            log("mlat: connection to $label lost: ${serverText((e.message ?: e).toString())}")
             close(null, reconnect = true)
         }
 
@@ -446,16 +446,17 @@ class MlatClient(
         }
 
         private fun handshakeResponse(r: JSONObject) {
-            if (r.has("reconnect_in")) reconnectInterval = r.getDouble("reconnect_in")
+            r.optDouble("reconnect_in").takeIf { it.isFinite() }?.let { reconnectInterval = it.coerceIn(MIN_RECONNECT_S, MAX_RECONNECT_S) }
             if (r.has("deny")) {
-                val reasons = r.optJSONArray("deny")?.let { a -> (0 until a.length()).map { a.getString(it) } }.orEmpty()
-                log("mlat: server rejected the connection: ${reasons.joinToString("; ")}")
-                stats = stats.copy(state = State.DENIED, message = reasons.joinToString("; "))
+                val reasons = r.optJSONArray("deny")?.let { a -> (0 until a.length()).map { a.optString(it) } }.orEmpty()
+                val said = serverText(reasons.joinToString("; "))
+                log("mlat: server rejected the connection: \"$said\"")
+                stats = stats.copy(state = State.DENIED, message = said)
                 close(null, reconnect = true)
                 return
             }
-            val motd = r.optString("motd").takeIf { it.isNotBlank() }
-            motd?.let { log("mlat: server says: $it") }
+            val motd = r.optString("motd").takeIf { it.isNotBlank() }?.let(::serverText)
+            motd?.let { log("mlat: server says: \"$it\"") }
             compress = r.optString("compress", "none")
             when (compress) {
                 "none" -> Unit
@@ -487,11 +488,23 @@ class MlatClient(
                         badSyncTimeout = s.optDouble("bad_sync_timeout").takeUnless { it.isNaN() }?.toInt(),
                     )
                 }
-                else -> log("mlat: ignoring request from server: $r")
+                else -> {
+                    // Once a minute at most, quoted and cut short: a server can send these as fast
+                    // as it likes (security report MF-LOG-01).
+                    val t = now()
+                    if (t - lastIgnoredLogT >= 60) {
+                        lastIgnoredLogT = t
+                        log("mlat: ignoring request from server: \"${serverText(r.toString())}\"")
+                    }
+                }
             }
         }
 
-        private fun hexList(a: JSONArray) = (0 until a.length()).map { a.getString(it).toInt(16) }
+        private var lastIgnoredLogT = Double.NEGATIVE_INFINITY
+
+        /** ICAO addresses from the server: only real 24-bit ones (security report MF-LOG-04). */
+        private fun hexList(a: JSONArray) =
+            (0 until a.length()).mapNotNull { a.optString(it).toIntOrNull(16)?.takeIf { v -> v in 0..0xFFFFFF } }
 
         override fun onClosed() {
             val wasReady = phase == Phase.READY
@@ -634,6 +647,22 @@ private val SYNC_TAIL = byteArrayOf(0, 0, 0xff.toByte(), 0xff.toByte())
 /** Most the server may send before a complete message, and most one zlib2 packet may inflate to. */
 internal const val MAX_SERVER_MESSAGE = 1 shl 20
 
+/** The server's reconnect_in is clamped to this range (security report MF-LOG-03). */
+internal const val MIN_RECONNECT_S = 10.0
+internal const val MAX_RECONNECT_S = 3600.0
+
+/**
+ * Text from the MLAT server, made safe for the log and the screen (security report MF-LOG-01 and
+ * MF-LOG-02): control characters (line breaks included) become spaces, so it can't start a line
+ * that looks like readsb's, and it's cut to [MAX_SERVER_TEXT] characters.
+ */
+internal fun serverText(s: String): String {
+    val clean = s.map { if (it < ' ' || it == '') ' ' else it }.joinToString("")
+    return if (clean.length <= MAX_SERVER_TEXT) clean else clean.take(MAX_SERVER_TEXT) + "…"
+}
+
+internal const val MAX_SERVER_TEXT = 200
+
 /**
  * Client-to-server zlib framing, as upstream's fill_zlib: lines are compressed into one stream,
  * Z_SYNC_FLUSHed at the end or every 32 kB, the 00 00 FF FF tail stripped, and each packet sent
@@ -687,7 +716,13 @@ internal fun zlibUnpack(inf: Inflater, bytes: ByteArray): Pair<List<String>, Int
         val text = ByteArrayOutputStream()
         while (true) {
             val n = inf.inflate(chunk)
-            if (n == 0 && (inf.needsInput() || inf.finished())) break
+            if (n == 0) {
+                if (inf.needsInput() || inf.finished()) break
+                // No output and nothing left to do: a preset-dictionary header (needsDictionary) or a
+                // stuck stream. Looping would pin a core for ever (security report MF-LOG-09); the
+                // caller reconnects instead.
+                throw java.io.IOException("zlib2 packet can't be inflated" + if (inf.needsDictionary()) " (it asks for a preset dictionary)" else "")
+            }
             text.write(chunk, 0, n)
             // A small packet can inflate to a huge one (a "zip bomb"); the caller reconnects.
             if (text.size() > MAX_SERVER_MESSAGE) throw java.io.IOException("zlib2 packet inflates past ${MAX_SERVER_MESSAGE / 1024} KiB")

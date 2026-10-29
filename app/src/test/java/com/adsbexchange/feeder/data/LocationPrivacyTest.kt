@@ -51,6 +51,16 @@ class LocationPrivacyTest {
             "gpsdebug: parsed lat,lon:   43.123456, -76.654321 (alt: 120 m)" to "gpsdebug: parsed lat,lon:   [hidden] (alt: 120 m)",
             "setLatLon: lat: 43.123456 lon: -76.654321" to "setLatLon: lat: [hidden] lon: [hidden]",
             """{"lat":43.123456,"lon":-76.654321}""" to """{"lat":[hidden],"lon":[hidden]}""",
+            // Formats readsb doesn't print in this set-up today (security report MF-LOG-11).
+            "lat: 43,12345 lon: -76,54321" to "lat: [hidden] lon: [hidden]",
+            """{"rr_lat":43.1,"rr_lon":-76.5}""" to """{"rr_lat":[hidden],"rr_lon":[hidden]}""",
+            """{"user_lat":43.12345,"user_lon":-76.54321}""" to """{"user_lat":[hidden],"user_lon":[hidden]}""",
+            "lat: +43 lon: -76" to "lat: [hidden] lon: [hidden]",
+            "id:0000000000000000 #posCounter:        5 refLoc:   43, -76 lat:   43 to   44 lon:  -77 to  -76" to
+                "id:0000000000000000 #posCounter:        5 refLoc:   [hidden]",
+            "receiver at 43.12345, -76.54321 now" to "receiver at [hidden] now",
+            "receiver at 43.12345 -76.54321 now" to "receiver at [hidden] now",
+            "receiver at 43.123N 76.543W now" to "receiver at [hidden] now",
         )
         for ((line, expected) in cases) assertEquals(expected, redactLocation(line))
     }

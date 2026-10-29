@@ -381,8 +381,8 @@ $env:ADSBX_UPLOAD_KEY_PASSWORD = '...'
 ```
 
 Without the key, `bundleRelease` stops with an error: a bundle is only for Play, and Play would
-reject one signed with anything else. `assembleRelease` still builds an APK for sideloading,
-signed with the debug key, with a warning. The bundle includes the native debug symbols, so
+reject one signed with anything else. `assembleRelease` stops too, unless a sideloading test
+build signed with the debug key is asked for with `-PdebugSignedRelease` (it warns). The bundle includes the native debug symbols, so
 Play's crash reports show function names.
 
 **Creating the upload key** (once, in your own terminal, so the passwords never pass through
@@ -414,7 +414,7 @@ A build uses exactly the locked versions and fails if an artifact's checksum doe
 or upgrade a library, edit `gradle/libs.versions.toml` and then record the change on purpose:
 
 ```powershell
-.\gradlew.bat assembleDebug assembleRelease lintDebug testDebugUnitTest --write-locks --write-verification-metadata sha256
+.\gradlew.bat assembleDebug assembleRelease lintDebug testDebugUnitTest -PdebugSignedRelease --write-locks --write-verification-metadata sha256
 ```
 
 Review the diff of the three files before committing it. Checksums written this way are trusted

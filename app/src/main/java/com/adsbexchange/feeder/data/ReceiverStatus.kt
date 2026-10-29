@@ -159,8 +159,10 @@ class ReceiverStatusReader(private val paths: FeederPaths) {
         return FeedState.UNKNOWN
     }
 
+    // MLAT lines can quote the MLAT server, which mustn't be able to set the failure reason
+    // (security report MF-LOG-02).
     private fun lastErrorFromLog(lines: List<String>): String? =
-        lines.lastOrNull { l -> ERROR_MARKERS.any { l.contains(it, ignoreCase = true) } }
+        lines.lastOrNull { l -> MLAT_LINE !in l && ERROR_MARKERS.any { l.contains(it, ignoreCase = true) } }
             ?.substringAfter("] ")?.trim()
 
     private fun File.readJson(): JSONObject? = runCatching { readReadsbJson()?.let(::JSONObject) }.getOrNull()
@@ -170,6 +172,7 @@ class ReceiverStatusReader(private val paths: FeederPaths) {
         const val LOG_TAIL_LINES = 200
         const val LOG_TAIL_BYTES = 64 * 1024L
         val ERROR_MARKERS = listOf("FATAL", "error", "failed")
+        const val MLAT_LINE = "[feeder] mlat:"
     }
 }
 
@@ -181,6 +184,9 @@ private class FeedTarget(target: String) {
     private val endpoints = FeederSettings.feedEndpoints(target).map { it.substringBefore(",") to " port ${it.substringAfter(",")}" }
 
     fun classify(line: String): FeedState? {
+        // Only readsb's own lines: the app's [feeder] lines can quote the MLAT server, which could
+        // otherwise fake "Connection established" (security report MF-LOG-02).
+        if (APP_LINE in line) return null
         if (endpoints.none { (host, port) -> line.contains(host) && line.contains(port) }) return null
         if (line.contains("Connection established")) return FeedState.CONNECTED
         if (line.contains("disconnected") || line.contains("failed") || line.contains("refused") ||
@@ -188,6 +194,9 @@ private class FeedTarget(target: String) {
         return null
     }
 }
+
+/** Marks the app's own lines in readsb.log ([appendAppLog], jni_bridge.c). */
+private const val APP_LINE = "[feeder] "
 
 /**
  * Follows readsb.log for the feed connector's state, reading only the bytes appended since the
@@ -229,8 +238,15 @@ internal fun redactLocation(line: String): String =
 private val LOCATION_REGEXES = listOf(
     // A pair after a label: "lat,lon: 43.1,-76.2", "location: 43.12345, -76.54321"
     Regex("""(?i)(\b(?:lat\s*,\s*lon|lat\s*/\s*lon|location|position|pos)\b["']?\s*[:=]?\s*\(?)-?\d{1,3}\.\d+\s*,\s*-?\d{1,3}\.\d+"""),
-    // A single labelled value: "--lat 43.1", "lat: 43.1", "\"lon\":-76.2", "latitude=43.1"
-    Regex("""(?i)((?:--)?\b(?:lat|lon|latitude|longitude)\b["']?\s*[:=]?\s*)-?\d{1,3}\.\d+"""),
+    // readsb's position-counter line: "refLoc:   43, -76 lat:   43 to   44 ..." (receiver.c).
+    Regex("""(?i)(\brefLoc:\s*).*"""),
+    // A single labelled value: "--lat 43.1", "lat: 43.1", "\"lon\":-76.2", "latitude=43.1", and
+    // also "user_lat"/"rr_lon" keys, a leading +, whole degrees and decimal commas ("lat: 43,12345").
+    Regex("""(?i)((?:--)?(?:\b|_)(?:lat|lon|latitude|longitude)\b["']?\s*[:=]?\s*)[+-]?\d{1,3}(?:[.,]\d+)?"""),
+    // Fail-safe for formats nobody prints today (security report MF-LOG-11): any unlabelled pair
+    // that looks like coordinates ("43.12345, -76.54321", "43.12345 -76.54321") or has N/S and E/W.
+    Regex("""()(?<![\w.])[+-]?\d{1,2}\.\d{3,}(?:\s*,\s*|\s+)[+-]?\d{1,3}\.\d{3,}(?![\w.])"""),
+    Regex("""(?i)()\b\d{1,3}(?:\.\d+)?\s*°?\s*[NS]\b[\s,]*\d{1,3}(?:\.\d+)?\s*°?\s*[EW]\b"""),
 )
 
 /** The last [maxBytes] of [file] as lines (the first, partial line dropped). */

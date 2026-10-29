@@ -76,7 +76,13 @@ static void *log_pump(void *arg) {
         if (!atomic_load(&g_logcat_mirror))
             continue;
         for (ssize_t i = 0; i < n; i++) {
-            if (buf[i] == '\n' || line_len == sizeof(line) - 1) {
+            // A full line buffer is flushed first, so the byte that filled it isn't lost.
+            if (line_len == sizeof(line) - 1) {
+                line[line_len] = '\0';
+                __android_log_write(ANDROID_LOG_INFO, TAG, line);
+                line_len = 0;
+            }
+            if (buf[i] == '\n') {
                 line[line_len] = '\0';
                 __android_log_write(ANDROID_LOG_INFO, TAG, line);
                 line_len = 0;
@@ -153,7 +159,11 @@ Java_com_adsbexchange_feeder_NativeFeeder_start(JNIEnv *env, jclass clazz, jint 
     if (atomic_exchange(&g_started, 1))
         return -1; // readsb's globals can't be reinitialised; restart the process instead
 
+    // Allocations are checked: out of memory, this returns -4 rather than crashing (security
+    // report MF-SEC-11), and the service stops with "couldn't start".
     const char *path = (*env)->GetStringUTFChars(env, log_path, NULL);
+    if (!path)
+        return -4;
     int r = redirect_stdio(path);
     (*env)->ReleaseStringUTFChars(env, log_path, path);
     if (r != 0) {
@@ -162,6 +172,8 @@ Java_com_adsbexchange_feeder_NativeFeeder_start(JNIEnv *env, jclass clazz, jint 
     }
 
     const char *ep = (*env)->GetStringUTFChars(env, exit_path, NULL);
+    if (!ep)
+        return -4;
     snprintf(g_exit_path, sizeof(g_exit_path), "%s", ep);
     (*env)->ReleaseStringUTFChars(env, exit_path, ep);
     unlink(g_exit_path);
@@ -170,15 +182,22 @@ Java_com_adsbexchange_feeder_NativeFeeder_start(JNIEnv *env, jclass clazz, jint 
 
     jsize n = (*env)->GetArrayLength(env, args);
     struct readsb_args *a = calloc(1, sizeof(*a));
+    if (!a)
+        return -4;
     a->argc = n + 1;
     a->argv = calloc((size_t) n + 2, sizeof(char *));
-    a->argv[0] = strdup("readsb");
+    if (!a->argv || !(a->argv[0] = strdup("readsb")))
+        return -4;
     for (jsize i = 0; i < n; i++) {
         jstring s = (jstring) (*env)->GetObjectArrayElement(env, args, i);
-        const char *c = (*env)->GetStringUTFChars(env, s, NULL);
+        const char *c = s ? (*env)->GetStringUTFChars(env, s, NULL) : NULL;
+        if (!c)
+            return -4;
         a->argv[i + 1] = strdup(c);
         (*env)->ReleaseStringUTFChars(env, s, c);
         (*env)->DeleteLocalRef(env, s);
+        if (!a->argv[i + 1])
+            return -4;
     }
 
     for (int i = 0; i < a->argc; i++)

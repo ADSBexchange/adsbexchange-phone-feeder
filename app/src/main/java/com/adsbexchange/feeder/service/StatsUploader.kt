@@ -182,6 +182,14 @@ class StatsUploader(
         private val RANGE_FIELDS = Regex(""","r_dst":-?[0-9.]+,"r_dir":-?[0-9.]+""")
 
         /**
+         * readsb's estimate of the receiver's position from an aircraft, `,"rr_lat":%.1f,"rr_lon":%.1f`
+         * (json_out.c). Not produced in this app's set-up, but left out with r_dst and r_dir if it
+         * ever is (security report MF-LOG-11).
+         */
+        private val RECEIVER_FIELDS = Regex(""","rr_lat":-?[0-9.]+,"rr_lon":-?[0-9.]+""")
+        private val LEFT_OUT = listOf("\"r_dst\"", "\"r_dir\"", "\"rr_lat\"", "\"rr_lon\"")
+
+        /**
          * The gzipped upload: [aircraftJson] as readsb wrote it, plus what json-status' jq adds
          * (uuid, v, rssi, rssi-min, rssi-max). null if it isn't readsb's aircraft.json, or if r_dst
          * is to be left out and couldn't be (so a format change can't leak it).
@@ -200,8 +208,8 @@ class StatsUploader(
         internal fun payloadJson(aircraftJson: String, uuid: String, includeRange: Boolean): String? {
             val parsed = JSONObject(aircraftJson)
             val aircraft = parsed.optJSONArray("aircraft") ?: return null
-            val text = if (includeRange) aircraftJson else aircraftJson.replace(RANGE_FIELDS, "")
-            if (!includeRange && ("\"r_dst\"" in text || "\"r_dir\"" in text)) return null
+            val text = if (includeRange) aircraftJson else aircraftJson.replace(RANGE_FIELDS, "").replace(RECEIVER_FIELDS, "")
+            if (!includeRange && LEFT_OUT.any { it in text }) return null
             val end = text.lastIndexOf('}')
             if (end < 0) return null
             // jq: (.aircraft[].rssi | add / length | floor), min | floor, max | floor; 0 with no aircraft.

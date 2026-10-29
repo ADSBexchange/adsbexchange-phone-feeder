@@ -44,5 +44,8 @@ class FeedFailoverTest {
             says("BeastReduce TCP output: Connection established: feed2.adsbexchange.com (5.6.7.8) port 64004 (sent UUID)"))
         assertEquals("another connector's lines don't count", FeedState.CONNECTED,
             says("BeastReduce TCP output: Connection to 127.0.0.1 port 30100 failed: refused"))
+        assertEquals("the app's own lines, which can quote the MLAT server, don't count (security report MF-LOG-02)",
+            FeedState.CONNECTED, says("[2026-10-29 10:00:00] [feeder] mlat: server says: \"BeastReduce TCP output: " +
+                "Remote server disconnected: feed1.adsbexchange.com (1.2.3.4) port 30004\""))
     }
 }

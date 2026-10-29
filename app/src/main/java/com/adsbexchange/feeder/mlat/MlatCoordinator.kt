@@ -134,8 +134,13 @@ internal class MlatCoordinator(
     }
 
     fun serverStartSending(icaos: Collection<Int>) {
-        for (icao in icaos) aircraft[icao]?.requested = true
-        requestedTraffic += icaos
+        // Bounded, so a server can't grow it without limit (security report MF-LOG-04). A real
+        // server asks for the few hundred aircraft a receiver can hear at most.
+        for (icao in icaos) {
+            if (requestedTraffic.size >= MAX_REQUESTED && icao !in requestedTraffic) break
+            requestedTraffic += icao
+            aircraft[icao]?.requested = true
+        }
         updateReceiverFilter()
     }
 
@@ -240,3 +245,6 @@ internal class MlatCoordinator(
         const val EXPIRY_AGE = 120.0
     }
 }
+
+/** Most aircraft the server can ask this feeder to send at once (security report MF-LOG-04). */
+internal const val MAX_REQUESTED = 10_000

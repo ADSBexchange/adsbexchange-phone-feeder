@@ -163,9 +163,11 @@ class HistoryRecorder(
             todayAircraft.clear()
         }
         var newToday = 0
+        // Bounded: fake aircraft broadcast over the air could otherwise grow these until the
+        // lifetime list no longer fits in memory at the next start (security report MF-LOG-12).
         for (a in addresses) {
-            if (aircraft.add(a)) newAircraft += a
-            if (todayAircraft.add(a)) newToday++
+            if (aircraft.size < MAX_AIRCRAFT && aircraft.add(a)) newAircraft += a
+            if (todayAircraft.size < MAX_AIRCRAFT && todayAircraft.add(a)) newToday++
         }
         if (newToday > 0) day(nowMs) { it.copy(aircraft = it.aircraft + newToday) }
         for (p in positions) {
@@ -235,6 +237,11 @@ class HistoryRecorder(
         const val DAY_MS = 86_400_000L
         const val MAX_TICK_GAP_MS = 60_000L
         const val MAX_PLAUSIBLE_NM = 400.0
+        /**
+         * Most different aircraft counted, lifetime and per day: far beyond what one receiver hears
+         * (a busy site meets tens of thousands), and about 30 MB in memory and 2 MB on disk at most.
+         */
+        const val MAX_AIRCRAFT = 500_000
         private const val SECTOR_DEG = 360.0 / History.RANGE_BEARINGS
 
         /** Days since 1970-01-01 in [zone]: the key of [DayStats]. */

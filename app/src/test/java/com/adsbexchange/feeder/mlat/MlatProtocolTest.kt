@@ -79,4 +79,20 @@ class MlatProtocolTest {
         assertEquals("2.0", MlatClient.round2(2.0))
         assertEquals("0.5", MlatClient.round2(0.5))
     }
+
+    /** A zlib header asking for a preset dictionary made inflate spin for ever (security report MF-LOG-09). */
+    @Test fun zlibUnpackRefusesAPresetDictionary() {
+        val packet = byteArrayOf(0, 6, 0x78, 0xbb.toByte(), 0, 0, 0, 1)
+        val thrown = runCatching { zlibUnpack(Inflater(), packet) }.exceptionOrNull()
+        assertTrue("$thrown", thrown is java.io.IOException)
+    }
+
+    /** Server text can't start a new log line or run on (security report MF-LOG-01, MF-LOG-02). */
+    @Test fun serverTextIsCleanedAndCut() {
+        assertEquals("a b  c", serverText("a\nb\r\tc"))
+        val long = serverText("x".repeat(500))
+        assertEquals(MAX_SERVER_TEXT + 1, long.length)
+        assertTrue(long.endsWith("…"))
+        assertFalse(serverText("ok\n[2026-10-29] Connection established").contains("\n"))
+    }
 }

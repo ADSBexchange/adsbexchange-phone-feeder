@@ -108,9 +108,10 @@ dependencies {
     testImplementation(libs.org.json)
 }
 
-// A release APK without the upload key is a test build for sideloading: it's signed with the debug
-// key, with a warning. A release App Bundle is only for Google Play, so it must have the key and
-// stops otherwise, rather than producing a bundle that can't be uploaded.
+// Without the upload key, a release build stops, rather than quietly signing with the debug key
+// (security report MF-SEC-02). A sideloaded test APK signed with the debug key has to be asked for
+// with -PdebugSignedRelease, and still gets a warning. A release App Bundle is only for Google Play,
+// so it always needs the key.
 gradle.taskGraph.whenReady {
     val ours = allTasks.filter { it.project == project }
     val upload = android.signingConfigs.findByName("upload")
@@ -126,6 +127,10 @@ gradle.taskGraph.whenReady {
             "See README, \"For Google Play\".")
     }
     if (ours.any { it.name == "assembleRelease" }) {
+        if (!project.hasProperty("debugSignedRelease")) {
+            throw GradleException("Release signing: $problem. For a test APK signed with the debug key " +
+                "(sideloading only), add -PdebugSignedRelease. See README, \"For Google Play\".")
+        }
         logger.warn("Release signing: $problem, so this release APK is signed with the debug key. It installs " +
             "(a test build for sideloading), but Google Play will reject it.")
     }

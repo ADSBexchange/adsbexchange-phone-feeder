@@ -5,15 +5,12 @@ import android.graphics.Color
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Bundle
-import android.os.SystemClock
-import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.SystemBarStyle
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.core.content.IntentCompat
-import androidx.core.content.edit
 import com.adsbexchange.feeder.data.RtlSdrDevices
 import com.adsbexchange.feeder.data.UsbAttach
 import com.adsbexchange.feeder.service.FeederService
@@ -75,21 +72,13 @@ class MainActivity : ComponentActivity() {
         val device = IntentCompat.getParcelableExtra(intent, UsbManager.EXTRA_DEVICE, UsbDevice::class.java) ?: return false
         val attached = getSystemService(UsbManager::class.java)?.deviceList?.values?.any { it.deviceName == device.deviceName } == true
         if (!attached || !RtlSdrDevices.isRtlSdr(this, device) || !RtlSdrDevices.hasPermission(this, device)) return false
-        val prefs = getSharedPreferences(PREFS, MODE_PRIVATE)
-        val key = UsbAttach.key(bootId(), device.deviceId)
-        if (!UsbAttach.isNew(key, prefs.getString(PREF_LAST_ATTACH, null))) return false
-        prefs.edit { putString(PREF_LAST_ATTACH, key) }
+        val key = UsbAttach.key(UsbAttach.bootId(this), device.deviceId)
+        if (!UsbAttach.isNew(key, UsbAttach.lastActedOn(this))) return false
+        UsbAttach.actedOn(this, key)
         return true
     }
 
-    /** Which boot this is: Android's boot count, or failing that the boot time to the minute. */
-    private fun bootId(): String =
-        runCatching { "count:" + Settings.Global.getInt(contentResolver, Settings.Global.BOOT_COUNT) }
-            .getOrElse { "time:" + (System.currentTimeMillis() - SystemClock.elapsedRealtime()) / 60_000 }
-
     private companion object {
         const val EXTRA_SMOKE_SKIP_ONBOARDING = "smoke_skip_onboarding"
-        const val PREFS = "usb_attach"
-        const val PREF_LAST_ATTACH = "last_attach"
     }
 }

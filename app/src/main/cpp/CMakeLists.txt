@@ -90,14 +90,16 @@ endif()
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/readsb_android.c.tmp "${READSB_SRC}")
 configure_file(${CMAKE_CURRENT_BINARY_DIR}/readsb_android.c.tmp ${CMAKE_CURRENT_BINARY_DIR}/readsb_android.c COPYONLY)
 
-# sdr_rtlsdr.c is copied with one string patch (checked below), as the desktop feeder's
-# readsb-windows.patch item 5: with --enable-biastee, rtlsdrClose() turns the bias tee off before
-# closing. librtlsdr's close leaves it as it is, so a stopped feeder would otherwise keep powering
-# the antenna cable until the stick was unplugged.
+# sdr_rtlsdr.c is copied with one string patch (checked below), after the desktop feeder's
+# readsb-windows.patch item 5: rtlsdrClose() turns the bias tee off before closing. librtlsdr's
+# close leaves it as it is, so a stopped feeder would otherwise keep powering the antenna cable
+# until the stick was unplugged. Always, not only with --enable-biastee: a stick whose EEPROM says
+# so turns its bias tee on at every open whatever the setting (librtlsdr.c, EEPROM byte 7 bit 1),
+# and that must go off at Stop too (security report MF-LOG-10).
 file(READ ${readsb_SOURCE_DIR}/sdr_rtlsdr.c RTLSDR_SRC)
 string(REPLACE
     "void rtlsdrClose() {\n    if (RTLSDR.dev) {\n        rtlsdr_close(RTLSDR.dev);"
-    "void rtlsdrClose() {\n    if (RTLSDR.dev) {\n        /* android: bias tee off on close */\n        if (Modes.biastee)\n            rtlsdr_set_bias_tee(RTLSDR.dev, 0);\n        rtlsdr_close(RTLSDR.dev);"
+    "void rtlsdrClose() {\n    if (RTLSDR.dev) {\n        /* android: bias tee off on close */\n        rtlsdr_set_bias_tee(RTLSDR.dev, 0);\n        rtlsdr_close(RTLSDR.dev);"
     RTLSDR_SRC "${RTLSDR_SRC}")
 string(FIND "${RTLSDR_SRC}" "/* android: bias tee off on close */" HAS_BIASTEE_OFF)
 if(HAS_BIASTEE_OFF EQUAL -1)
