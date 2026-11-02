@@ -44,7 +44,9 @@ $env:JAVA_TOOL_OPTIONS = "-Djdk.net.unixdomain.tmpdir=$(Join-Path $Toolchain 'tm
 
 $adb = Join-Path $env:ANDROID_HOME 'platform-tools\adb.exe'
 $emulator = Join-Path $env:ANDROID_HOME 'emulator\emulator.exe'
-$pkg = 'com.adsbexchange.feeder'
+$pkg = 'com.adsbexchange.phonefeeder'
+# The code stays in com.adsbexchange.feeder, so components need their full class names.
+$activity = "$pkg/com.adsbexchange.feeder.MainActivity"
 $failures = 0
 
 function Step($msg) { Write-Host "`n== $msg" -ForegroundColor Cyan }
@@ -162,7 +164,7 @@ function StartSmokeRun([string]$feed = '', [string]$mlat = '', [string]$stats = 
     $feedArg = if ($feed) { " --es smoke_feed $feed" } else { '' }
     if ($mlat) { $feedArg += " --es smoke_mlat $mlat" }
     if ($stats) { $feedArg += " --es smoke_stats $stats" }
-    Shell ("am start -n $pkg/.MainActivity --es smoke_ifile smoke.iq " +
+    Shell ("am start -n $activity --es smoke_ifile smoke.iq " +
            "--ed smoke_lat $($rx.lat) --ed smoke_lon $($rx.lon)$feedArg") | Out-Null
 }
 # Wait for the bridge's exit line. Don't poll for the :feeder process instead: after readsb
@@ -187,11 +189,11 @@ Shell 'logcat -b crash -c' | Out-Null
 $rx = $expected.receiver
 
 Step 'First-run screens'
-Shell "am start -n $pkg/.MainActivity" | Out-Null
+Shell "am start -n $activity" | Out-Null
 Start-Sleep -Seconds 4
 Check (UiHas 'text="Get started"') 'onboarding shown on first launch'
 Screenshot 'onboarding.png'
-Shell "am start -n $pkg/.MainActivity --ez smoke_skip_onboarding true" | Out-Null
+Shell "am start -n $activity --ez smoke_skip_onboarding true" | Out-Null
 Start-Sleep -Seconds 3
 $usbHost = (Shell 'pm list features') -match 'android.hardware.usb.host'
 if ($usbHost) {
@@ -476,7 +478,7 @@ if (-not $SkipStopTest) {
     $m2 = $mtimes[-1]
     Check ($changes -le 1) "aircraft.json at most once a minute while the app is in the background ($changes changes in 8 s)"
     Check ([bool](Shell "pidof $pkg`:feeder").Trim() -and -not (ReadsbExited)) 'readsb still running in the background'
-    Shell "am start -n $pkg/.MainActivity" | Out-Null
+    Shell "am start -n $activity" | Out-Null
     Start-Sleep -Seconds 4
     $m3 = JsonMtime
     Check ($m3 -gt $m2) "aircraft.json updates again once the app is back (mtime $m2 -> $m3)"

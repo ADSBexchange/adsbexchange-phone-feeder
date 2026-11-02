@@ -23,7 +23,7 @@ android {
     ndkVersion = "28.2.13676358"
 
     defaultConfig {
-        applicationId = "com.adsbexchange.feeder"
+        applicationId = "com.adsbexchange.phonefeeder"
         minSdk = 24 // Android 7.0 — old phones are the whole point
         targetSdk = 36
         versionCode = 3

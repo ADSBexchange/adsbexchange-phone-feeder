@@ -625,8 +625,8 @@ SIL Open Font License, see `app/src/main/assets/licenses/DM-Sans-OFL.txt`). The 
 
 The logo mark and icon are vector redraws of the site's logo. Swap in official artwork files when
 available. Note the logo PNG measured `#00D979` while the site stylesheet uses `#29D682`; the app
-uses the stylesheet value. Package name is `com.adsbexchange.feeder`; it becomes permanent at the
-first Play upload.
+uses the stylesheet value. The package name (application ID) is `com.adsbexchange.phonefeeder`; it becomes permanent at the
+first Play upload. The code stays in `com.adsbexchange.feeder`, which users never see.
 
 ## Open questions
 
