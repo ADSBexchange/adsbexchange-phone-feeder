@@ -73,7 +73,7 @@ jobs:
       - name: Android SDK packages
         if: ${{ matrix.language == 'java-kotlin' }}
         run: |
-          sdk="${ANDROID_HOME:?ANDROID_HOME isn't set: this runner has no Android SDK}"
+          sdk="${ANDROID_HOME:?ANDROID_HOME is not set: this runner has no Android SDK}"
           sdkmanager="$sdk/cmdline-tools/latest/bin/sdkmanager"
           compile=$(sed -nE 's/^ *compileSdk = ([0-9]+).*/\1/p' app/build.gradle.kts)
           ndk=$(sed -nE 's/^ *ndkVersion = "([^"]+)".*/\1/p' app/build.gradle.kts)
