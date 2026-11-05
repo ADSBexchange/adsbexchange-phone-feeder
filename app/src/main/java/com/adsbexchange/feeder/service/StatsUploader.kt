@@ -1,5 +1,6 @@
 package com.adsbexchange.feeder.service
 
+import com.adsbexchange.feeder.BuildConfig
 import com.adsbexchange.feeder.data.readReadsbJson
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
@@ -21,9 +22,9 @@ import kotlin.random.Random
  * leaderboard and the Feeder Hub all come from these uploads.
  *
  * Same request as the script: same URL, headers and body, so ADS-B Exchange can't tell the two
- * apart beyond the UUID. One difference: readsb's per-aircraft distance and bearing from the
- * receiver (r_dst, r_dir), from which the receiver's position can be worked out, are only sent
- * while MLAT already sends ADS-B Exchange the position ([includeRange]).
+ * apart beyond the UUID and the User-Agent ([USER_AGENT]). One difference: readsb's per-aircraft
+ * distance and bearing from the receiver (r_dst, r_dir), from which the receiver's position can be
+ * worked out, are only sent while MLAT already sends ADS-B Exchange the position ([includeRange]).
  *
  * Runs on a thread of its own, so a slow upload (up to 10 s) never holds up the feeder service.
  */
@@ -142,6 +143,7 @@ class StatsUploader(
             conn.readTimeout = TIMEOUT_MS
             conn.setFixedLengthStreamingMode(body.size)
             conn.setRequestProperty("adsbx-uuid", config.uuid)
+            conn.setRequestProperty("User-Agent", USER_AGENT)
             // Spelt as the script spells it. ADS-B Exchange's server expects this request as is.
             conn.setRequestProperty("Content_Encoding", "gzip")
             // What curl --data-binary sends.
@@ -174,6 +176,11 @@ class StatsUploader(
         /** readsb rewrites aircraft.json every few seconds; older than this, it isn't running properly. */
         private const val STALE_MS = 30_000L
         private const val TIMEOUT_MS = 10_000
+        /**
+         * The app and its version only. Android's default ("Dalvik/2.1.0 (Linux; U; Android 14;
+         * Pixel 7 Pro Build/…)") would send ADS-B Exchange the phone's model and Android version.
+         */
+        internal val USER_AGENT = "ADS-B-Exchange-Phone-Feeder/${BuildConfig.VERSION_NAME}"
 
         /** The feeder's stats page, as adsbexchange-stats' `adsbexchange-showurl` prints it. */
         fun statsPageUrl(uuid: String) = "https://www.adsbexchange.com/api/feeders/?feed=$uuid"

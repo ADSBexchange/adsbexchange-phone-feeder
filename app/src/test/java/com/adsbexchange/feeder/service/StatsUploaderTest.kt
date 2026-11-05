@@ -1,5 +1,6 @@
 package com.adsbexchange.feeder.service
 
+import com.adsbexchange.feeder.BuildConfig
 import com.sun.net.httpserver.HttpServer
 import org.json.JSONObject
 import org.junit.After
@@ -94,7 +95,7 @@ class StatsUploaderTest {
         s.createContext("/api/receive/") { ex ->
             val body = GZIPInputStream(ex.requestBody).use { String(it.readBytes(), Charsets.UTF_8) }
             uploads += Upload(
-                listOf("adsbx-uuid", "Content_Encoding", "Content-Type").associateWith { ex.requestHeaders.getFirst(it) },
+                listOf("adsbx-uuid", "Content_Encoding", "Content-Type", "User-Agent").associateWith { ex.requestHeaders.getFirst(it) },
                 body,
             )
             ex.sendResponseHeaders(status(), -1)
@@ -132,6 +133,8 @@ class StatsUploaderTest {
             assertEquals(uuid, first.headers["adsbx-uuid"])
             assertEquals("gzip", first.headers["Content_Encoding"])
             assertEquals("application/x-www-form-urlencoded", first.headers["Content-Type"])
+            // No device details: just the app and its version.
+            assertEquals("ADS-B-Exchange-Phone-Feeder/${BuildConfig.VERSION_NAME}", first.headers["User-Agent"])
             assertEquals(uuid, JSONObject(first.body).getString("uuid"))
             assertFalse(first.body.contains("r_dst"))
             await("counted") { u.stats.uploads >= 2 && u.stats.lastOkMs != null }
