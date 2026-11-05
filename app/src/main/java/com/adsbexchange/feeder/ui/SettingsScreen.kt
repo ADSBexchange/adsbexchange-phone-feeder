@@ -302,6 +302,7 @@ private fun AboutSection(vm: MainViewModel) {
         Text(stringResource(R.string.about_shared_title), style = MaterialTheme.typography.titleSmall)
         Text(stringResource(R.string.onboarding_privacy), style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+        TextButton(onClick = { openUrl(context, Links.PRIVACY_POLICY) }) { Text(stringResource(R.string.action_privacy_policy)) }
         // The GPL's "appropriate legal notices": copyright, no warranty, the license, and the source.
         Text(OSS_COMPONENTS.first().copyright, style = MaterialTheme.typography.bodySmall)
         Text(stringResource(R.string.about_license_notice), style = MaterialTheme.typography.bodySmall,

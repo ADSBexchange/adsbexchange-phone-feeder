@@ -26,6 +26,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +34,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,6 +46,7 @@ import com.adsbexchange.feeder.R
  */
 @Composable
 fun OnboardingScreen(state: UiState, vm: MainViewModel) {
+    val context = LocalContext.current
     var name by rememberSaveable { mutableStateOf(state.settings.name) }
     var antennaWithin15m by rememberSaveable { mutableStateOf(state.settings.antennaWithin15m) }
     val permissions = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -74,6 +77,7 @@ fun OnboardingScreen(state: UiState, vm: MainViewModel) {
 
                 Text(stringResource(R.string.onboarding_privacy), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = { openUrl(context, Links.PRIVACY_POLICY) }) { Text(stringResource(R.string.action_privacy_policy)) }
             }
             // Pinned below the scrolling content, so the one button is always on screen.
             HorizontalDivider()

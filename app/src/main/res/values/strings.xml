@@ -281,6 +281,7 @@
     <string name="about_shared_title">What ADS-B Exchange receives</string>
     <string name="about_license_notice">This app is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License, version 3 or (at your option) any later version. It comes with ABSOLUTELY NO WARRANTY. It\'s built on readsb, librtlsdr, libusb, zstd and a port of mlat-client; see Open-source licenses.</string>
     <string name="action_source_code">Source code</string>
+    <string name="action_privacy_policy">Privacy policy (JETNET)</string>
     <string name="action_licenses">Open-source licenses</string>
     <string name="action_close">Close</string>
     <string name="action_back">Back</string>

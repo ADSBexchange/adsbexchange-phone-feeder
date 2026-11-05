@@ -107,6 +107,8 @@ object Links {
     /** From the ADSBx feeder setup: MLAT sync status (by feeder name) and the MLAT map. */
     const val MLAT_SYNC = "https://map.adsbexchange.com/sync/"
     const val MLAT_MAP = "https://map.adsbexchange.com/mlat-map/"
+    /** JETNET's privacy notice: JETNET LLC publishes the app, and the notice covers the feeder apps. */
+    const val PRIVACY_POLICY = "https://www.jetnet.com/privacy-notice"
     /**
      * The map around the receiver. Rounded to about 1 km: at zoom 9 that's the same view, and the URL
      * ends up in browser history, browser sync and web server logs.
