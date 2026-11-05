@@ -108,6 +108,25 @@ endif()
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/sdr_rtlsdr_android.c.tmp "${RTLSDR_SRC}")
 configure_file(${CMAKE_CURRENT_BINARY_DIR}/sdr_rtlsdr_android.c.tmp ${CMAKE_CURRENT_BINARY_DIR}/sdr_rtlsdr_android.c COPYONLY)
 
+# fasthash.c is copied with one string patch (checked below): fasthash64() read its input as
+# uint64_t words, and readsb hashes byte strings at any address (net_io.c's receiver IDs). 32-bit
+# ARM can't load 8 bytes from an address that isn't 4-byte aligned, so armeabi-v7a devices (an
+# Android TV, November 2026) crashed with SIGBUS a few seconds into every run. The words are now
+# copied out of a byte pointer, which gives the same hashes on every ABI.
+file(READ ${readsb_SOURCE_DIR}/fasthash.c FASTHASH_SRC)
+string(REPLACE
+    "    const uint64_t *pos = (const uint64_t *)buf;\n    const uint64_t *end = pos + (len / 8);"
+    "    /* android: unaligned-safe */\n    const unsigned char *pos = (const unsigned char *)buf;\n    const unsigned char *end = pos + (len / 8) * 8;"
+    FASTHASH_SRC "${FASTHASH_SRC}")
+string(REPLACE "        v  = *pos++;" "        __builtin_memcpy(&v, pos, sizeof v);\n        pos += sizeof v;" FASTHASH_SRC "${FASTHASH_SRC}")
+string(FIND "${FASTHASH_SRC}" "/* android: unaligned-safe */" HAS_UNALIGNED_POS)
+string(FIND "${FASTHASH_SRC}" "__builtin_memcpy(&v, pos, sizeof v);" HAS_UNALIGNED_READ)
+if(HAS_UNALIGNED_POS EQUAL -1 OR HAS_UNALIGNED_READ EQUAL -1)
+    message(FATAL_ERROR "fasthash.c no longer matches the Android patch; update CMakeLists.txt for the new readsb revision")
+endif()
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/fasthash_android.c.tmp "${FASTHASH_SRC}")
+configure_file(${CMAKE_CURRENT_BINARY_DIR}/fasthash_android.c.tmp ${CMAKE_CURRENT_BINARY_DIR}/fasthash_android.c COPYONLY)
+
 file(READ ${readsb_SOURCE_DIR}/version READSB_VERSION)
 string(STRIP "${READSB_VERSION}" READSB_VERSION)
 
@@ -117,7 +136,7 @@ add_library(readsb STATIC
     ${R}/argp.c ${R}/anet.c ${R}/interactive.c ${R}/mode_ac.c ${R}/mode_s.c ${R}/comm_b.c
     ${R}/json_out.c ${R}/net_io.c ${R}/crc.c ${R}/demod_2400.c
     ${R}/uat2esnt/uat2esnt.c ${R}/uat2esnt/uat_decode.c
-    ${R}/stats.c ${R}/cpr.c ${R}/icao_filter.c ${R}/track.c ${R}/util.c ${R}/fasthash.c
+    ${R}/stats.c ${R}/cpr.c ${R}/icao_filter.c ${R}/track.c ${R}/util.c ${CMAKE_CURRENT_BINARY_DIR}/fasthash_android.c
     ${R}/convert.c ${R}/sdr_ifile.c ${R}/sdr_beast.c ${R}/sdr.c ${R}/ais_charset.c
     ${R}/globe_index.c ${R}/geomag.c ${R}/receiver.c ${R}/aircraft.c ${R}/api.c
     ${R}/threadpool.c ${CMAKE_CURRENT_BINARY_DIR}/sdr_rtlsdr_android.c)
