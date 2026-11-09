@@ -26,7 +26,7 @@ android {
         applicationId = "com.adsbexchange.phonefeeder"
         minSdk = 24 // Android 7.0 — old phones are the whole point
         targetSdk = 36
-        versionCode = 3
+        versionCode = 4
         versionName = "1.0.0"
 
         // Where users get this app's source, as the GPL requires (shown under Settings > About).
